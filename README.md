@@ -2,11 +2,14 @@
 ## Overview
 The backend is an Ubuntu 18.04 instance hosted on AWS EC2 running Django v2.2.9 with MongoDB v4.2.2 and Djongo v1.3.0 as the SQL connector.
 
-The project is located in /opt/capstone.
+The project is located in /opt/capstone.  
+IP: 34.234.47.39  
+URL: claytoncornett.tk  
 
-IP: 34.234.47.39
+Access Logs: `/var/log/apache2/access.log`  
+Error Logs: `/var/log/apache2/error.log`  
 
-URL: claytoncornett.tk
+Viewing the error logs: `sudo less /var/log/apache2/error.log`  
 
 ### File Hierarchy
 
@@ -54,10 +57,13 @@ If they are utilized, they would be located in `/opt/capstone/api/templates/<tem
 You must activate the virtual environment prior to running any Django management commands.  
     *&ast;from the* `/opt/capstone` *directory:&ast;* `source venv/bin/activate`  
 To deactivate the virtual environment, simply run: `deactivate`  
+
 All Django management commands are run via the manage.py script in the `/opt/capstone` directory.  
 Each command is prefixed by: `python manage.py <command>`  
 More documentation on Django manage.py: [https://docs.djangoproject.com/en/2.2/ref/django-admin/](https://docs.djangoproject.com/en/2.2/ref/django-admin/)  
 
 ##### Important Commands:
 * `python manage.py makemigrations` - this will prepare any migrations for the database. **&ast;necessary when any models are modified&ast;**
-* `python manage.py migrate` - this will perform any migrations for the database. **&ast;necessary when any models are modified&ast;**
+* `python manage.py migrate` - this will perform any migrations for the database. **&ast;necessary when any models are modified&ast;**  
+
+Any updates to the views will require a server restart via: `sudo service apache2 restart`  
