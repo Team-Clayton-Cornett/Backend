@@ -70,7 +70,7 @@ Any updates to the views will require a server restart via: `sudo service apache
 
 ## API Routes
 
-* **/api/login**  
+* **/api/login/**  
   * Method: POST  
   * Input:  
     * username: string  
