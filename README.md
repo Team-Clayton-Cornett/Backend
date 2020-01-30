@@ -67,3 +67,48 @@ More documentation on Django manage.py: [https://docs.djangoproject.com/en/2.2/r
 * `python manage.py migrate` - this will perform any migrations for the database. **&ast;necessary when any models are modified&ast;**  
 
 Any updates to the views will require a server restart via: `sudo service apache2 restart`  
+
+## API Routes
+For any REST GET routes that require the user to be authenticated, the following header must be supplied to authenticate the user: `Authorization: Token "<auth_token_string>"`  
+For example: `Authorization: Token "f5fdca63b0ed56da08b96ab69c17ef63cc64f3fd"`  
+
+* **/api/login/**  
+  * Method: POST  
+  * Input:  
+    * username: string  
+    * password: string  
+  * Output:  
+    * Success:  
+       ```json
+       {
+         "token": "f5fdca63b0ed56da08b96ab69c17ef63cc64f3fd"
+       }
+       ```  
+    * Invalid Credentials:  
+      ```json
+      {
+        "non_field_errors": [
+          "Unable to log in with provided credentials."
+        ]
+       }
+       ```
+    * Username Not Provided:  
+      ```json
+      {
+        "username": [
+          "This field is required."
+        ]
+      }
+      ```
+    * Password Not Provided:  
+      ```json
+      {
+        "password": [
+          "This field is required."
+        ]
+      }
+      ```
+  * Description  
+    * If the provided login credentials are valid, it returns a token for SSO authentication.  
+    * If the provided login credentials or request are invalid, it returns error messages.  
+    * ***For JSON Response, `?format=json` must be provided at the end of the URL***  
