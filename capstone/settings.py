@@ -44,7 +44,7 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
 
     # Local Apps
-    # 'capstone.api',
+    'api',
 ]
 
 MIDDLEWARE = [
