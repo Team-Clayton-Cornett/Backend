@@ -69,8 +69,9 @@ More documentation on Django manage.py: [https://docs.djangoproject.com/en/2.2/r
 Any updates to the views will require a server restart via: `sudo service apache2 restart`  
 
 ## API Routes
-For any REST GET routes that require the user to be authenticated, the following header must be supplied to authenticate the user: `Authorization: Token "<auth_token_string>"`  
-For example: `Authorization: Token "f5fdca63b0ed56da08b96ab69c17ef63cc64f3fd"`  
+For any REST GET routes that require the user to be authenticated, the following header must be supplied to authenticate the user: `Authorization: Token <auth_token_string>`  
+For example: `Authorization: Token f5fdca63b0ed56da08b96ab69c17ef63cc64f3fd`  
+Using cURL: `curl -X GET https://claytoncornett.tk/api/hello_world/?format=json -H 'Authorization: Token f5fdca63b0ed56da08b96ab69c17ef63cc64f3fd'`
 
 * **/api/login/**  
   * Method: POST  
