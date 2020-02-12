@@ -1,17 +1,17 @@
 from djongo import models
 from django.contrib.auth.models import User
 from django.core.validators import MaxValueValidator, MinValueValidator
-from enum import Enum
-# enum for Days of the Week
-# use like so: DayOfWeekEnum.SU
-class DayOfWeekEnum(Enum):
-    SU = 'Sunday'
-    MO = 'Monday'
-    TU = 'Tuesday'
-    WE = 'Wednesday'
-    TH = 'Thurdsday'
-    FR = 'Friday'
-    SA = 'Saturday'
+
+# choices for day_of_week
+DAYS_OF_WEEK = (
+    ('Sun', 'Sunday'),
+    ('Mon', 'Monday'),
+    ('Tue', 'Tuesday'),
+    ('Wed', 'Wednesday'),
+    ('Thu', 'Thursday'),
+    ('Fri', 'Friday'),
+    ('Sat', 'Saturday'),
+)
 
 class Probability(models.Model):
     # start time for the probability (15 minute duration). ie) 00:00 == 00:00 <= time < 00:15
@@ -21,7 +21,7 @@ class Probability(models.Model):
 
 class DayProbability(models.Model):
     # day of week enumeration. see DayOfWeekEnum above for values
-    day_of_week = models.CharField(max_length=10, choices=[(tag, tag.value) for tag in DayOfWeekEnum])
+    day_of_week = models.CharField(max_length=10, choices=DAYS_OF_WEEK)
     # array/list of Probability. [0] = 00:00, [1] = 00:15, ..., [94] = 23:45
     probability = models.ArrayField(model_container=Probability)
 
@@ -32,23 +32,31 @@ class Garage(models.Model):
     start_enforce_time = models.TimeField(null=False, blank=False)
     # end of the enforcement period. Cannot be None/NULL
     end_enforce_time = models.TimeField(null=False, blank=False)
-    # whether the enforcement period applies to saturdays. Default is False
-    enforced_on_saturdays = models.BooleanField(default=False)
-    # whether the enforcement period applies to saturdays. Default is False
-    enforced_on_sundays = models.BooleanField(default=False)
+    # whether the enforcement period applies to weekends. Default is False
+    enforced_on_weekends = models.BooleanField(default=False)
     # array/list of DayProbability. [0] = Sunday, ..., [6] = Saturday
     probability = models.ArrayField(model_container=DayProbability)
     latitude = models.FloatField()
     longitude = models.FloatField()
 
+    def __str__(self):
+        return self.name
+
 class Ticket(models.Model):
     # dateTime of the ticket. Cannot be None/NULL
     date = models.DateTimeField(null=False, blank=False)
+    # day of week enumeration. see DayOfWeekEnum above for values
+    day_of_week = models.CharField(max_length=10, choices=DAYS_OF_WEEK)
     # garage/location of the ticket. Cannot be None/NULL
     garage = models.ForeignKey(Garage, on_delete=models.CASCADE, null=False, blank=False)
     # user who was ticketed. If None/NULL, the ticket was not reported by a specific user.
     # *this should only be None/NULL for test data*
     user = models.ForeignKey(User, on_delete=models.SET_NULL, default=None, null=True)
+
+    def get_day_of_week(self):
+        return self.get_day_of_week_display()
+
+    get_day_of_week.short_description = 'Day Of Week'
 
 class Park(models.Model):
     # start dateTime. Cannot be None/NULL

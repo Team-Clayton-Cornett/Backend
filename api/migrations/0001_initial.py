@@ -21,7 +21,7 @@ class Migration(migrations.Migration):
             name='DayProbability',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('day_of_week', models.CharField(choices=[(api.models.DayOfWeekEnum('Sunday'), 'Sunday'), (api.models.DayOfWeekEnum('Monday'), 'Monday'), (api.models.DayOfWeekEnum('Tuesday'), 'Tuesday'), (api.models.DayOfWeekEnum('Wednesday'), 'Wednesday'), (api.models.DayOfWeekEnum('Thurdsday'), 'Thurdsday'), (api.models.DayOfWeekEnum('Friday'), 'Friday'), (api.models.DayOfWeekEnum('Saturday'), 'Saturday')], max_length=10)),
+                ('day_of_week', models.CharField(choices=api.models.DAYS_OF_WEEK)),
                 ('probability', djongo.models.fields.ArrayField(model_container=api.models.Probability)),
             ],
         ),
