@@ -10,12 +10,12 @@ import random
 from api.models import Garage, Probability, DayProbability, Ticket, Park
 
 class HelloWorldView(APIView):
-    permission_classes = (IsAuthenticated,)
+    permission_classes = [IsAuthenticated]
 
     def get(self, request):
         content = {
             'message': 'Hello, World!',
-            'user': request.user.email
+            'user': request.user.park
         }
 
         return Response(content)
