@@ -15,11 +15,10 @@ class HelloWorldView(APIView):
     def get(self, request):
         content = {
             'message': 'Hello, World!',
-            'user': request.user.username
+            'user': request.user.email
         }
 
         return Response(content)
-
 
 ## GENERATE TEST DATA ##
 

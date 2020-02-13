@@ -25,5 +25,5 @@ from . import views
 
 urlpatterns = [
     path('hello_world/', views.HelloWorldView.as_view(), name='hello_world'),
-    path('login/', obtain_auth_token, name='api_login'),
+    path('login/', obtain_auth_token, name='api_login')
 ]
