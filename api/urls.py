@@ -33,9 +33,16 @@ garage_detail = viewsets.GarageViewSet.as_view({
     'get': 'retrieve'
 })
 
+user_detail = viewsets.UserViewSet.as_view({
+    'get': 'get_user',
+    'post': 'create_user',
+    'patch': 'update_user'
+})
+
 urlpatterns = [
     path('hello_world/', views.HelloWorldView.as_view(), name='hello_world'),
     path('login/', obtain_auth_token, name='api_login'),
+    path('user/', user_detail, name='user'),
     path('garages/', garage_list, name='garage_list'),
     path('garages/<str:day_of_week>/', garage_list, name='garage_list_day_of_week'),
     path('garages/<str:day_of_week>/<str:time>/', garage_list, name='garage_list_day_of_week'),

@@ -9,17 +9,6 @@ import random
 # local models
 from api.models import Garage, Probability, DayProbability, Ticket, Park
 
-class HelloWorldView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def get(self, request):
-        content = {
-            'message': 'Hello, World!',
-            'user': request.user.park
-        }
-
-        return Response(content)
-
 ## GENERATE TEST DATA ##
 
 # creates a new ticket object in the database.
