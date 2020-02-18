@@ -80,13 +80,13 @@ Using cURL: `curl -X GET https://claytoncornett.tk/api/hello_world/?format=json 
     * password: string  
   * Output:  
     * Success:  
-       ```json
+       ```
        {
          "token": "f5fdca63b0ed56da08b96ab69c17ef63cc64f3fd"
        }
        ```  
     * Invalid Credentials:  
-      ```json
+      ```
       {
         "non_field_errors": [
           "Unable to log in with provided credentials."
@@ -94,7 +94,7 @@ Using cURL: `curl -X GET https://claytoncornett.tk/api/hello_world/?format=json 
        }
        ```
     * Field Errors:  
-      ```json
+      ```
       {
         "<field_name>": [
           "This field is required."
@@ -111,7 +111,7 @@ Using cURL: `curl -X GET https://claytoncornett.tk/api/hello_world/?format=json 
     * Input: *None*  
     * Output:  
       * Success:  
-         ```json
+         ```
          {
            "email": "<email>",
            "first_name": "<first_name>",
@@ -123,7 +123,7 @@ Using cURL: `curl -X GET https://claytoncornett.tk/api/hello_world/?format=json 
          }
          ```  
       * Non-Field Errors  
-        ```json
+        ```
         {
           "non_field_errors": [
             "<error_description>"
@@ -144,14 +144,14 @@ Using cURL: `curl -X GET https://claytoncornett.tk/api/hello_world/?format=json 
       * park: array of park JSON objects, *default:* `null`  
     * Output:  
       * Success:  
-         ```json
+         ```
          {
            "token": "f5fdca63b0ed56da08b96ab69c17ef63cc64f3fd",
            "user": <user_JSON_object>
          }
          ```  
       * Non-Field Errors ex) User already exists:  
-        ```json
+        ```
         {
           "non_field_errors": [
             "Unable to log in with provided credentials."
@@ -159,7 +159,7 @@ Using cURL: `curl -X GET https://claytoncornett.tk/api/hello_world/?format=json 
          }
          ```
       * Field Errors ex) Invalid field, passwords did not match, etc.:  
-        ```json
+        ```
         {
           "<field_name>": [
             "This field is required."
@@ -180,13 +180,13 @@ Using cURL: `curl -X GET https://claytoncornett.tk/api/hello_world/?format=json 
       * park: array of park JSON objects, *default:* `null`  
     * Output:  
       * Success:  
-         ```json
+         ```
          {
            <user_JSON_object>
          }
          ```  
       * Non-Field Errors ex) User already exists:  
-        ```json
+        ```
         {
           "non_field_errors": [
             "Unable to log in with provided credentials."
@@ -194,7 +194,7 @@ Using cURL: `curl -X GET https://claytoncornett.tk/api/hello_world/?format=json 
          }
          ```
       * Field Errors ex) Invalid field, passwords did not match, etc.:  
-        ```json
+        ```
         {
           "<field_name>": [
             "This field is required."
@@ -209,7 +209,7 @@ Using cURL: `curl -X GET https://claytoncornett.tk/api/hello_world/?format=json 
     * Input: *None*  
     * Output:  
       * Success:  
-         ```json
+         ```
          [
            {
             "pk": <ticket_id>,
@@ -223,7 +223,7 @@ Using cURL: `curl -X GET https://claytoncornett.tk/api/hello_world/?format=json 
          ]
          ```  
       * Non-Field Errors  
-        ```json
+        ```
         {
           "non_field_errors": [
             "<error description>"
@@ -239,7 +239,7 @@ Using cURL: `curl -X GET https://claytoncornett.tk/api/hello_world/?format=json 
       * garage_id: number, *required*    
     * Output:  
       * Success:  
-         ```json
+         ```
          {
            "pk": <ticket_id>,
            "date": <ISO_date_string>,
@@ -250,7 +250,7 @@ Using cURL: `curl -X GET https://claytoncornett.tk/api/hello_world/?format=json 
          }
          ```  
       * Non-Field Errors  
-        ```json
+        ```
         {
           "non_field_errors": [
             "Unable to log in with provided credentials."
@@ -258,7 +258,7 @@ Using cURL: `curl -X GET https://claytoncornett.tk/api/hello_world/?format=json 
          }
          ```
       * Field Errors ex) Invalid field, garage DNE, etc.:  
-        ```json
+        ```
         {
           "<field_name>": [
             "This field is required."
@@ -276,7 +276,7 @@ Using cURL: `curl -X GET https://claytoncornett.tk/api/hello_world/?format=json 
       * garage_id: number  
     * Output:  
       * Success:  
-         ```json
+         ```
          {
            "pk": <ticket_id>,
            "date": <ISO_date_string>,
@@ -287,7 +287,7 @@ Using cURL: `curl -X GET https://claytoncornett.tk/api/hello_world/?format=json 
          }
          ```  
       * Non-Field Errors  
-        ```json
+        ```
         {
           "non_field_errors": [
             "Unable to log in with provided credentials."
@@ -295,7 +295,7 @@ Using cURL: `curl -X GET https://claytoncornett.tk/api/hello_world/?format=json 
          }
          ```
       * Field Errors ex) Invalid field, garage DNE, etc.:  
-        ```json
+        ```
         {
           "<field_name>": [
             "This field is required."
@@ -311,7 +311,7 @@ Using cURL: `curl -X GET https://claytoncornett.tk/api/hello_world/?format=json 
     * Input: *None*  
     * Output:  
       * Success:  
-         ```json
+         ```
          [
            {
             "pk": <ticket_id>,
@@ -325,7 +325,7 @@ Using cURL: `curl -X GET https://claytoncornett.tk/api/hello_world/?format=json 
          ]
          ```  
       * Non-Field Errors  
-        ```json
+        ```
         {
           "non_field_errors": [
             "<error description>"
@@ -340,7 +340,7 @@ Using cURL: `curl -X GET https://claytoncornett.tk/api/hello_world/?format=json 
     * Input: *None*  
     * Output:  
       * Success:  
-         ```json
+         ```
          [
           {
             "start": "<ISO_date_string",
@@ -362,7 +362,7 @@ Using cURL: `curl -X GET https://claytoncornett.tk/api/hello_world/?format=json 
         ]
          ```  
       * Non-Field Errors  
-        ```json
+        ```
         {
           "non_field_errors": [
             "<error description>"
@@ -380,7 +380,7 @@ Using cURL: `curl -X GET https://claytoncornett.tk/api/hello_world/?format=json 
       * ticket_id: number, *default:* `null`
     * Output:  
       * Success:  
-         ```json
+         ```
          {
            "start": "<ISO_date_string",
            "end": "<ISO_date_string> OR null",
@@ -399,7 +399,7 @@ Using cURL: `curl -X GET https://claytoncornett.tk/api/hello_world/?format=json 
          }
          ```  
       * Non-Field Errors  
-        ```json
+        ```
         {
           "non_field_errors": [
             "Unable to log in with provided credentials."
@@ -407,7 +407,7 @@ Using cURL: `curl -X GET https://claytoncornett.tk/api/hello_world/?format=json 
          }
          ```
       * Field Errors ex) Invalid field, garage DNE, ticket DNE, etc.:  
-        ```json
+        ```
         {
           "<field_name>": [
             "This field is required."
@@ -424,7 +424,7 @@ Using cURL: `curl -X GET https://claytoncornett.tk/api/hello_world/?format=json 
     * Input: *None*  
     * Output:  
       * Success:  
-        ```json
+        ```
         {
           "start": "<ISO_date_string",
           "end": "<ISO_date_string> OR null",
@@ -443,7 +443,7 @@ Using cURL: `curl -X GET https://claytoncornett.tk/api/hello_world/?format=json 
         }
         ```  
       * Non-Field Errors ex) Park pk DNE  
-        ```json
+        ```
         {
           "non_field_errors": [
             "<error description>"
@@ -461,7 +461,7 @@ Using cURL: `curl -X GET https://claytoncornett.tk/api/hello_world/?format=json 
       * ticket_id: number, *default:* `null`  
     * Output:  
       * Success:  
-        ```json
+        ```
         {
          "start": "<ISO_date_string",
          "end": "<ISO_date_string> OR null",
@@ -480,7 +480,7 @@ Using cURL: `curl -X GET https://claytoncornett.tk/api/hello_world/?format=json 
         }
         ```  
       * Non-Field Errors  
-        ```json
+        ```
         {
           "non_field_errors": [
             "Unable to log in with provided credentials."
@@ -488,7 +488,7 @@ Using cURL: `curl -X GET https://claytoncornett.tk/api/hello_world/?format=json 
          }
          ```
       * Field Errors ex) Invalid field, garage DNE, ticket DNE, etc.:  
-        ```json
+        ```
         {
           "<field_name>": [
             "This field is required."
