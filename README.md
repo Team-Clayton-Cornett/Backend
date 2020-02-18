@@ -118,15 +118,15 @@ Using cURL: `curl -X GET https://claytoncornett.tk/api/hello_world/?format=json 
            "last_name": "<last_name>",
            "phone": "<phone_number OR null>",
            "park": [
-             <array of park objects>
-           ]
+             <park object>
+           ] OR null
          }
          ```  
       * Non-Field Errors  
         ```json
         {
           "non_field_errors": [
-            "<error description>"
+            "<error_description>"
           ]
          }
          ```
@@ -147,7 +147,7 @@ Using cURL: `curl -X GET https://claytoncornett.tk/api/hello_world/?format=json 
          ```json
          {
            "token": "f5fdca63b0ed56da08b96ab69c17ef63cc64f3fd",
-           "user": <user JSON object>
+           "user": <user_JSON_object>
          }
          ```  
       * Non-Field Errors ex) User already exists:  
@@ -182,7 +182,7 @@ Using cURL: `curl -X GET https://claytoncornett.tk/api/hello_world/?format=json 
       * Success:  
          ```json
          {
-           <user JSON object>
+           <user_JSON_object>
          }
          ```  
       * Non-Field Errors ex) User already exists:  
@@ -203,3 +203,105 @@ Using cURL: `curl -X GET https://claytoncornett.tk/api/hello_world/?format=json 
         ```
     * Description  
       * Updates the current user to the new field values. Only have to specify which fields are being updated. 
+      * ***MUST BE AUTHENTICATED***
+* **/api/user/ticket/**  
+  * Method: GET  
+    * Input: *None*  
+    * Output:  
+      * Success:  
+         ```json
+         [
+           {
+            "pk": <ticket_id>,
+            "date": "<ISO_date_string>",
+            "garage": {
+              "pk": <garage_id>,
+              "name": <garage_name>
+            }
+          },
+          {...}
+         ]
+         ```  
+      * Non-Field Errors  
+        ```json
+        {
+          "non_field_errors": [
+            "<error description>"
+          ]
+         }
+         ```
+    * Description  
+      * Returns all of the tickets the current user has created.
+      * ***MUST BE AUTHENTICATED***
+  * Method: POST  
+    * Input:  
+      * date: string, *ISO Format*, *required*  
+      * garage_id: number, *required*    
+    * Output:  
+      * Success:  
+         ```json
+         {
+           "pk": <ticket_id>,
+           "date": <ISO_date_string>,
+           "garage": {
+             "pk": <garage_id>,
+             "name": <garage_name>
+           }
+         }
+         ```  
+      * Non-Field Errors  
+        ```json
+        {
+          "non_field_errors": [
+            "Unable to log in with provided credentials."
+          ]
+         }
+         ```
+      * Field Errors ex) Invalid field, garage DNE, etc.:  
+        ```json
+        {
+          "<field_name>": [
+            "This field is required."
+          ]
+        }
+        ```
+    * Description  
+      * If all fields are valid, creates a ticket for the user. Returns a copy of the created ticket
+      * Will return field and non-field errors if input does not pass validation
+      * ***MUST BE AUTHENTICATED***
+  * Method: PATCH  
+    * Input:  
+      * pk: number, *ticket_id*, *required*
+      * date: string, *ISO Format*  
+      * garage_id: number  
+    * Output:  
+      * Success:  
+         ```json
+         {
+           "pk": <ticket_id>,
+           "date": <ISO_date_string>,
+           "garage": {
+             "pk": <garage_id>,
+             "name": <garage_name>
+           }
+         }
+         ```  
+      * Non-Field Errors  
+        ```json
+        {
+          "non_field_errors": [
+            "Unable to log in with provided credentials."
+          ]
+         }
+         ```
+      * Field Errors ex) Invalid field, garage DNE, etc.:  
+        ```json
+        {
+          "<field_name>": [
+            "This field is required."
+          ]
+        }
+        ```
+    * Description  
+      * Updates the specified ticket to the new field values.
+      * Only have to specify which fields are being updated. 
