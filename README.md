@@ -2,18 +2,26 @@
 ## Overview
 The backend is an Ubuntu 18.04 instance hosted on AWS EC2 running Django v2.2.9 with MongoDB v4.2.2 and Djongo v1.3.0 as the SQL connector.
 
-The project is located in /opt/capstone.  
+The main/prod project is located in `/opt/capstone`.  
 IP: 34.234.47.39  
 URL: claytoncornett.tk  
 
-Access Logs: `/var/log/apache2/access.log`  
-Error Logs: `/var/log/apache2/error.log`  
+Access Logs: `/var/log/apache2/capstone/access.log`  
+Error Logs: `/var/log/apache2/capstone/error.log`  
 
-Viewing the error logs: `sudo less /var/log/apache2/error.log`  
+Viewing the error logs: `sudo less /var/log/apache2/capstone/error.log` OR `sudo cat /var/log/apache2/capstone/error.log`  
+
+Individual dev projects are located in `~/capstone`.
+URL: <pawprint>.claytoncornett.tk
+
+Access Logs: `/var/log/apache2/capstone_<pawprint>/access.log`
+Error Logs: `/var/log/apache2/capstone_<pawprint>/access.log`
+
+Viewing the error logs: `sudo less /var/log/apache2/capstone_<pawprint>/error.log` OR `sudo cat /var/log/apache2/capstone_<pawprint>/error.log`  
 
 ### File Hierarchy
 
-/opt/capstone/  
+/opt/capstone/ OR ~/capstone  
     manage.py  
     capstone/  
         __init__.py  
@@ -26,9 +34,14 @@ Viewing the error logs: `sudo less /var/log/apache2/error.log`
         __init__.py  
         admin.py  
         apps.py  
+        forms.py  
+        managers.py  
         models.py  
+        permissions.py  
+        serializers.py  
         tests.py  
         views.py  
+        viewsets.py
 
 ### Views
 Views are how the server deals with requests that were routed by URLs. This is where the logic is defined when a request is made via a URL.  
@@ -36,10 +49,20 @@ Views for the api app (the main app for the backend) are located at `/opt/capsto
 More documentation on Django views: [https://docs.djangoproject.com/en/2.2/topics/http/views/](https://docs.djangoproject.com/en/2.2/topics/http/views/)  
 *Note:* All of the API views will be returning [JSON responses](https://docs.djangoproject.com/en/2.2/ref/request-response/#jsonresponse-objects) rather than normal [HTTP responses](https://docs.djangoproject.com/en/2.2/ref/request-response/#django.http.HttpResponse).
 
+### Viewsets
+Viewsets are how the server deals with requests that were routed by URLs and handle a lot of this through serializers. This is where the logic is defined when a request is made via a URL for Django REST Framework Serializer objects.  
+Views for the api app (the main app for the backend) are located at `/opt/capstone/api/viewsets.py`  
+More documentation on DRF viewsets: [https://www.django-rest-framework.org/api-guide/viewsets/](https://www.django-rest-framework.org/api-guide/viewsets/)  
+
 ### Models
 Models are how the objects stored in the database are defined.  
 Models for the api app (the main app for the backend) are located at `/opt/capstone/api/models.py`  
 More documentation on Django models: [https://docs.djangoproject.com/en/2.2/topics/db/models/](https://docs.djangoproject.com/en/2.2/topics/db/models/)
+
+### Serializers
+Serializers are how Django REST Framework converts Django models into JSON objects.
+Serializers for the api app (the main app for the backend) are located at `/opt/capstone/api/serializers.py`
+More documentation on DRF serializers: [https://www.django-rest-framework.org/api-guide/serializers/](https://www.django-rest-framework.org/api-guide/serializers/)
 
 ### URLs
 URLs are how requests to the server are routed to their respective views.  
