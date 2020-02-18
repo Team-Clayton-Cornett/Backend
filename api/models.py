@@ -49,15 +49,15 @@ class Garage(models.Model):
 class Ticket(models.Model):
     # dateTime of the ticket. Cannot be None/NULL
     date = models.DateTimeField(null=False, blank=False)
-    # day of week enumeration. see DayOfWeekEnum above for values
-    day_of_week = models.CharField(max_length=10, choices=DAYS_OF_WEEK)
     # garage/location of the ticket. Cannot be None/NULL
     garage = models.ForeignKey(Garage, on_delete=models.CASCADE, null=False, blank=False)
+    # user who submitted the ticket. Should only be None/NULL for test data
+    user = models.ForeignKey('User', on_delete=models.SET_NULL, null=True, default=None)
 
-    def get_day_of_week(self):
-        return self.get_day_of_week_display()
+    def day_of_week(self):
+        return self.date.strftime('%a')
 
-    get_day_of_week.short_description = 'Day Of Week'
+    day_of_week.short_description = 'Day Of Week'
 
 class Park(models.Model):
     # start dateTime. Cannot be None/NULL
@@ -66,6 +66,8 @@ class Park(models.Model):
     end = models.DateTimeField(default=None)
     # ticket reference. Not ticketed for that park if set to None/NULL
     ticket = models.ForeignKey(Ticket, on_delete=models.SET_NULL, default=None, null=True)
+    # garage/location of the park. Cannot be None/NULL
+    garage = models.ForeignKey(Garage, on_delete=models.CASCADE, null=False, blank=False)
 
 class User(AbstractUser):
     username = None

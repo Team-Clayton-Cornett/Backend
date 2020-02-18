@@ -39,10 +39,33 @@ user_detail = viewsets.UserViewSet.as_view({
     'patch': 'update_user'
 })
 
+user_unassigned_tickets = viewsets.TicketViewSet.as_view({
+    'get': 'get_user_unassigned_tickets'
+})
+
+ticket_detail = viewsets.TicketViewSet.as_view({
+    'get': 'get_user_tickets',
+    'post': 'create_user_ticket',
+    'patch': 'update_user_ticket'
+})
+
+park_list = viewsets.ParkViewSet.as_view({
+    'get': 'get_user_parks',
+    'post': 'create_user_park'
+})
+
+park_detail = viewsets.ParkViewSet.as_view({
+    'get': 'get_user_park',
+    'patch': 'update_user_park'
+})
+
 urlpatterns = [
-    path('hello_world/', views.HelloWorldView.as_view(), name='hello_world'),
     path('login/', obtain_auth_token, name='api_login'),
     path('user/', user_detail, name='user'),
+    path('user/ticket/', ticket_detail, name='ticket'),
+    path('user/tickets/unassigned', user_unassigned_tickets, name='user_unassigned_tickets'),
+    path('user/park/', park_list, name='park'),
+    path('user/park/<int:pk>/', park_detail, name='park'),
     path('garages/', garage_list, name='garage_list'),
     path('garages/<str:day_of_week>/', garage_list, name='garage_list_day_of_week'),
     path('garages/<str:day_of_week>/<str:time>/', garage_list, name='garage_list_day_of_week'),

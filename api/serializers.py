@@ -2,6 +2,7 @@ from rest_framework import serializers
 import datetime
 from django.core import exceptions
 from django.contrib.auth.password_validation import validate_password as django_validate_password
+from rest_framework.fields import CurrentUserDefault
 import re
 
 from .models import Probability, DayProbability, Garage, Ticket, Park, User
@@ -66,19 +67,44 @@ class GarageSerializer(serializers.ModelSerializer):
         model = Garage
         fields = ('pk', 'name', 'start_enforce_time', 'end_enforce_time', 'enforced_on_weekends', 'probability', 'latitude', 'longitude')
 
+class GarageSimpleSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Garage
+        fields = ('pk', 'name')
+
 class TicketSerializer(serializers.ModelSerializer):
-    garage = GarageSerializer()
+    garage = GarageSimpleSerializer(read_only=True)
+    garage_id = serializers.PrimaryKeyRelatedField(queryset=Garage.objects.all(), source='garage', write_only=True)
+    user = serializers.PrimaryKeyRelatedField(queryset=User.objects.all(), write_only=True)
 
     class Meta:
         model = Ticket
-        fields = ('date', 'day_of_week', 'garage')
+        fields = ('pk', 'date', 'garage', 'garage_id', 'user')
+        read_only_fields = ('day_of_week', 'garage')
 
 class ParkSerializer(serializers.ModelSerializer):
-    ticket = TicketSerializer()
+    garage = GarageSimpleSerializer(read_only=True)
+    garage_id = serializers.PrimaryKeyRelatedField(queryset=Garage.objects.all(), source='garage', write_only=True)
+    ticket = TicketSerializer(read_only=True)
+    ticket_id = serializers.PrimaryKeyRelatedField(queryset=Ticket.objects.all(), source='ticket', required=False, allow_null=True, default=None, write_only=True)
+    end = serializers.DateTimeField(required=False, allow_null=True, default=None)
     
+    def validate_ticket(self, ticket):
+        if ticket.user != self.contex['request'].user:
+            raise serializers.ValidationError("User must be the creator of the ticket specified.")
+
+        return ticket
+
+    def validate_ticket_id(self, ticket_id):
+        if ticket_id.user != self.context['request'].user:
+            raise serializers.ValidationError("User must be the creator of the ticket specified.")
+
+        return ticket_id
+
     class Meta:
         model = Park
-        fields = ('start', 'end', 'ticket')
+        fields = ('start', 'end', 'ticket', 'garage', 'garage_id', 'ticket_id')
+        read_fields = ('ticket', 'garage')
 
 class PasswordSerializer(serializers.Serializer):
     password = serializers.CharField()

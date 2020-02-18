@@ -15,8 +15,8 @@ from api.models import Garage, Probability, DayProbability, Ticket, Park
     # date: dateTime object
     # garage: instance of Garage object
     # user: instance of User object. Defaults to None/NULL
-def create_ticket(date, day_of_week, garage, user=None):
-    Ticket.objects.create(date=date, day_of_week=day_of_week, garage=garage, user=user)
+def create_ticket(date, garage, user=None):
+    Ticket.objects.create(date=date, garage=garage, user=user)
 
 # create n tickets for each Garage at a random date between start_date and end_date
 def create_random_tickets(n):
@@ -29,9 +29,8 @@ def create_random_tickets(n):
         for i in range(0,n):
             random_num = random.random()
             date = start_date + random_num * date_range
-            day_of_week = date.strftime('%a')
 
-            create_ticket(date=date, garage=garage, day_of_week=day_of_week)
+            create_ticket(date=date, garage=garage)
 
 """
 Example Class-Based REST View:
