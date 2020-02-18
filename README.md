@@ -93,18 +93,10 @@ Using cURL: `curl -X GET https://claytoncornett.tk/api/hello_world/?format=json 
         ]
        }
        ```
-    * Username Not Provided:  
+    * Field Errors:  
       ```json
       {
-        "username": [
-          "This field is required."
-        ]
-      }
-      ```
-    * Password Not Provided:  
-      ```json
-      {
-        "password": [
+        "<field_name>": [
           "This field is required."
         ]
       }
@@ -113,3 +105,101 @@ Using cURL: `curl -X GET https://claytoncornett.tk/api/hello_world/?format=json 
     * If the provided login credentials are valid, it returns a token for SSO authentication.  
     * If the provided login credentials or request are invalid, it returns error messages.  
     * ***For JSON Response, `?format=json` must be provided at the end of the URL***  
+    
+* **/api/user/**  
+  * Method: GET  
+    * Input: *None*  
+    * Output:  
+      * Success:  
+         ```json
+         {
+           "email": "<email>",
+           "first_name": "<first_name>",
+           "last_name": "<last_name>",
+           "phone": "<phone_number OR null>",
+           "park": [
+             <array of park objects>
+           ]
+         }
+         ```  
+      * Non-Field Errors  
+        ```json
+        {
+          "non_field_errors": [
+            "<error description>"
+          ]
+         }
+         ```
+    * Description  
+      * Returns the user's account profile in JSON.
+      * ***MUST BE AUTHENTICATED***
+  * Method: POST  
+    * Input:  
+      * email: string, *required*  
+      * first_name: string, *required*  
+      * last_name: string, *required*  
+      * phone: string  
+      * password: string, *required*  
+      * password2: string, *required*, *must match password*  
+      * park: array of park JSON objects, *default:* `null`  
+    * Output:  
+      * Success:  
+         ```json
+         {
+           "token": "f5fdca63b0ed56da08b96ab69c17ef63cc64f3fd",
+           "user": <user JSON object>
+         }
+         ```  
+      * Non-Field Errors ex) User already exists:  
+        ```json
+        {
+          "non_field_errors": [
+            "Unable to log in with provided credentials."
+          ]
+         }
+         ```
+      * Field Errors ex) Invalid field, passwords did not match, etc.:  
+        ```json
+        {
+          "<field_name>": [
+            "This field is required."
+          ]
+        }
+        ```
+    * Description  
+      * If all fields are valid, creates a user and a token for the user. Returns the token as well as a copy of the user's account details
+      * Do not need to be authenticated, will return field and non-field errors if input does not pass validation
+  * Method: PATCH  
+    * Input:  
+      * email: string  
+      * first_name: string  
+      * last_name: string  
+      * phone: string  
+      * password: string  
+      * password2: string, *required if password is in input*, *must match password*  
+      * park: array of park JSON objects, *default:* `null`  
+    * Output:  
+      * Success:  
+         ```json
+         {
+           <user JSON object>
+         }
+         ```  
+      * Non-Field Errors ex) User already exists:  
+        ```json
+        {
+          "non_field_errors": [
+            "Unable to log in with provided credentials."
+          ]
+         }
+         ```
+      * Field Errors ex) Invalid field, passwords did not match, etc.:  
+        ```json
+        {
+          "<field_name>": [
+            "This field is required."
+          ]
+        }
+        ```
+    * Description  
+      * Updates the current user to the new field values. Only have to specify which fields are being updated. 
