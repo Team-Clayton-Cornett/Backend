@@ -305,3 +305,197 @@ Using cURL: `curl -X GET https://claytoncornett.tk/api/hello_world/?format=json 
     * Description  
       * Updates the specified ticket to the new field values.
       * Only have to specify which fields are being updated. 
+      * ***MUST BE AUTHENTICATED*
+* **/api/user/ticket/unassigned/**  
+  * Method: GET  
+    * Input: *None*  
+    * Output:  
+      * Success:  
+         ```json
+         [
+           {
+            "pk": <ticket_id>,
+            "date": "<ISO_date_string>",
+            "garage": {
+              "pk": <garage_id>,
+              "name": <garage_name>
+            }
+          },
+          {...}
+         ]
+         ```  
+      * Non-Field Errors  
+        ```json
+        {
+          "non_field_errors": [
+            "<error description>"
+          ]
+         }
+         ```
+    * Description  
+      * Returns all of the tickets the current user has created that have not been assigned to one of the user's parks.
+      * ***MUST BE AUTHENTICATED***
+* **/api/user/park/**  
+  * Method: GET  
+    * Input: *None*  
+    * Output:  
+      * Success:  
+         ```json
+         [
+          {
+            "start": "<ISO_date_string",
+            "end": "<ISO_date_string> OR null",
+            "ticket": {
+              "pk": <ticket_id>,
+              "date": "<ISO_date_string>",
+              "garage": {
+                "pk": <ticket_garage_id>,
+                "name": "<ticket_garage_id>"
+              }
+            } OR null,
+            "garage": {
+              "pk": <park_garage_id>,
+              "name": "<park_garage_name>"
+            }
+          },
+          {...}
+        ]
+         ```  
+      * Non-Field Errors  
+        ```json
+        {
+          "non_field_errors": [
+            "<error description>"
+          ]
+         }
+         ```
+    * Description  
+      * Returns all of the current user's parks.
+      * ***MUST BE AUTHENTICATED***
+  * Method: POST  
+    * Input:  
+      * start: string, *ISO Format*, *required*  
+      * end: string, *ISO Format*, *default:* `null`
+      * garage_id: number, *required*  
+      * ticket_id: number, *default:* `null`
+    * Output:  
+      * Success:  
+         ```json
+         {
+           "start": "<ISO_date_string",
+           "end": "<ISO_date_string> OR null",
+           "ticket": {
+             "pk": <ticket_id>,
+             "date": "<ISO_date_string>",
+             "garage": {
+               "pk": <ticket_garage_id>,
+               "name": "<ticket_garage_id>"
+             }
+           } OR null,
+           "garage": {
+             "pk": <park_garage_id>,
+             "name": "<park_garage_name>"
+           }
+         }
+         ```  
+      * Non-Field Errors  
+        ```json
+        {
+          "non_field_errors": [
+            "Unable to log in with provided credentials."
+          ]
+         }
+         ```
+      * Field Errors ex) Invalid field, garage DNE, ticket DNE, etc.:  
+        ```json
+        {
+          "<field_name>": [
+            "This field is required."
+          ]
+        }
+        ```
+    * Description  
+      * If all fields are valid, creates a park for the user. Returns a copy of the created park
+      * Will return field and non-field errors if input does not pass validation
+      * ***MUST BE AUTHENTICATED***
+* **/api/user/park/<park_id>/**  
+  * park_id: index of park in user's park array beginning at 0. *Unique to each user*
+  * Method: GET  
+    * Input: *None*  
+    * Output:  
+      * Success:  
+        ```json
+        {
+          "start": "<ISO_date_string",
+          "end": "<ISO_date_string> OR null",
+          "ticket": {
+            "pk": <ticket_id>,
+            "date": "<ISO_date_string>",
+            "garage": {
+              "pk": <ticket_garage_id>,
+              "name": "<ticket_garage_id>"
+            }
+          } OR null,
+          "garage": {
+            "pk": <park_garage_id>,
+            "name": "<park_garage_name>"
+          }
+        }
+        ```  
+      * Non-Field Errors ex) Park pk DNE  
+        ```json
+        {
+          "non_field_errors": [
+            "<error description>"
+          ]
+         }
+         ```
+    * Description  
+      * Returns the park specified in the url.
+      * ***MUST BE AUTHENTICATED***
+  * Method: PATCH  
+    * Input:  
+      * start: string, *ISO Format*  
+      * end: string, *ISO Format*, *default:* `null`
+      * garage_id: number  
+      * ticket_id: number, *default:* `null`  
+    * Output:  
+      * Success:  
+        ```json
+        {
+         "start": "<ISO_date_string",
+         "end": "<ISO_date_string> OR null",
+         "ticket": {
+           "pk": <ticket_id>,
+           "date": "<ISO_date_string>",
+           "garage": {
+             "pk": <ticket_garage_id>,
+             "name": "<ticket_garage_id>"
+           }
+         } OR null,
+         "garage": {
+           "pk": <park_garage_id>,
+           "name": "<park_garage_name>"
+         }
+        }
+        ```  
+      * Non-Field Errors  
+        ```json
+        {
+          "non_field_errors": [
+            "Unable to log in with provided credentials."
+          ]
+         }
+         ```
+      * Field Errors ex) Invalid field, garage DNE, ticket DNE, etc.:  
+        ```json
+        {
+          "<field_name>": [
+            "This field is required."
+          ]
+        }
+        ```
+    * Description  
+      * Updates the specified park to the new field values.
+      * Only have to specify which fields are being updated. 
+      * ***MUST BE AUTHENTICATED*
