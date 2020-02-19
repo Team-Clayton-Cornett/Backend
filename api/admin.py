@@ -11,12 +11,6 @@ class GarageAdmin(admin.ModelAdmin):
     ordering = ('name', 'pk',)
     search_fields = ('name',)
 
-@admin.register(Ticket)
-class TicketAdmin(admin.ModelAdmin):
-    list_display = ('date', 'day_of_week', 'garage',)
-    ordering = ('date', 'pk',)
-    search_fields = ('date', 'day_of_week', 'garage',)
-
 @admin.register(Park)
 class ParkAdmin(admin.ModelAdmin):
     list_display = ('start', 'end', 'ticket',)

@@ -36,127 +36,105 @@ class ParkViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['get'])
     def get_user_parks(self, request):
-        user_parks = request.user.park
-        serializer = self.get_serializer(user_parks, many=True, context={'details': True})
+        if request.data.get('pk'):
+            park = Park.objects.get(pk=request.data['pk'])
 
+            if park.user != request.user:
+                return Response('The user does not own the specified park.',
+                                status=status.HTTP_400_BAD_REQUEST)
+
+            serializer = self.get_serializer(park)
+
+            headers = self.get_success_headers(serializer.data)
+            return Response(serializer.data, headers=headers)
+
+        user_parks = request.user.parks()
+        serializer = self.get_serializer(user_parks, many=True)
+
+        headers = self.get_success_headers(serializer.data)
         return Response(serializer.data)
-
-    @action(detail=True, methods=['get'])
-    def get_user_park(self, request, pk):
-        user_parks = request.user.park
-
-        try:
-            serializer = self.get_serializer(user_parks[pk], context={'details': True})
-            return Response(serializer.data)
-        except:
-            return Response('User does not have park with pk of ' + str(pk) + '.',
-                            status=status.HTTP_400_BAD_REQUEST)
 
     @action(detail=False, methods=['post'])
     def create_user_park(self, request):
+        request.data['user'] = request.user.pk
+
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        user_parks = request.user.park
-        if user_parks is None:
-            user_parks = [Park(**serializer.validated_data)]
-        else:
-            user_parks.append(Park(**serializer.validated_data))
+        park = self.create(serializer.validated_data)
 
-        request.user.park = user_parks
-        request.user.save()
+        # create new serializer instance so that the pk will be returned
+        new_serializer = self.get_serializer(park)
 
         headers = self.get_success_headers(serializer.data)
-        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+        return Response(new_serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
     @action(detail=False, methods=['patch'])
-    def update_user_park(self, request, pk):
+    def update_user_park(self, request):
         try:
-            instance = request.user.park[pk]
+            instance = Park.objects.get(pk=request.data['pk'])
         except:
-            return Response('User does not have park with pk of ' + str(pk) + '.',
+            return Response('Park with pk ' + str(pk) + ' does not exist.',
                             status=status.HTTP_400_BAD_REQUEST)
 
-        # convert park instance to dict, rename garage & ticket to garage_id & ticket_id
-        instance_dict = model_to_dict(instance, fields=['start', 'end', 'ticket', 'garage'])
-        instance_dict['garage_id'] = instance_dict.pop('garage')
-        instance_dict['ticket_id'] = instance_dict.pop('ticket')
-        # update dictionary to new data from request.data
-        instance_dict.update(request.data)
-
         # create serializer instance and validate new data
-        serializer = self.get_serializer(data=instance_dict)
+        if instance.user != request.user:
+            return Response('The user does not own this park.',
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        serializer = self.get_serializer(instance, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
 
-        # create new Park instance and save to user.park array
-        request.user.park[pk] = Park(**serializer.validated_data)
-        request.user.save()
+        if instance.ticket:
+            if serializer.validated_data.get('end'):
+                end = serializer.validated_data.get('end')
+                if end < instance.ticket.date:
+                    return Response('The end date of the park must be after the reported ticket date.',
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        self.perform_update(serializer)
 
         headers = self.get_success_headers(serializer.data)
         return Response(serializer.data, headers=headers)
+
+    def create(self, validated_data):
+        park = Park.objects.create(**validated_data)
+
+        return park
 
 class TicketViewSet(viewsets.ModelViewSet):
     queryset = Ticket.objects.all()
     permission_classes = [IsAuthenticated]
     serializer_class = TicketSerializer
 
-    @action(detail=True, methods=['get'])
-    def get_user_unassigned_tickets(self, request):
-        user_parks = request.user.park
-        used_tickets = []
-
-        for park in user_parks:
-            if park.ticket != None:
-                tickets.append(park.ticket_id)
-
-        tickets = Ticket.objects.filter(user=request.user).exclude(pk__in=used_tickets).order_by('date')
-
-        serializer = self.get_serializer(tickets, many=True)
-
-        return Response(serializer.data)
-
-    @action(detail=True, methods=['get'])
-    def get_user_tickets(self, request):
-        queryset = Ticket.objects.filter(user=request.user).order_by('date')
-        serializer = self.get_serializer(queryset, many=True)
-
-        headers = self.get_success_headers(serializer.data)
-        return Response(serializer.data, headers=headers)
-
     @action(detail=False, methods=['post'])
     def create_user_ticket(self, request):
-        request.data['user'] = request.user.pk
+        try:
+            park = Park.objects.get(pk=request.data['park_id'])
+        except:
+            return Response('Park with pk ' + str(pk) + ' does not exist.',
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        if park.user != request.user:
+            return Response('The user does not own this park.',
+                            status=status.HTTP_400_BAD_REQUEST)
 
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        ticket = self.create(serializer.validated_data)
-
-        # create new serializer instance so that the pk will be returned
-        new_serializer = self.get_serializer(ticket)
-
-        headers = self.get_success_headers(serializer.data)
-        return Response(new_serializer.data, status=status.HTTP_201_CREATED, headers=headers)
-
-    @action(detail=False, methods=['patch'])
-    def update_user_ticket(self, request):
-        instance = Ticket.objects.get(pk=request.data['pk'])
-
-        if instance.user != request.user:
-            return Response('You are not the creator of this ticket.',
+        if serializer.validated_data.get('date'):
+            date = serializer.validated_data.get('date')
+            if date < park.start or park.end != None and date > park.end:
+                return Response('The date of the ticket must be during park time.',
                             status=status.HTTP_400_BAD_REQUEST)
 
-        serializer = self.get_serializer(instance, data=request.data, partial=True)
-        serializer.is_valid(raise_exception=True)
+        ticket = Ticket(**serializer.validated_data)
 
-        self.perform_update(serializer)
+        park.ticket = ticket
+        park.save()
 
-        return Response(serializer.data)
-
-    def create(self, validated_data):
-        ticket = Ticket.objects.create(**validated_data)
-
-        return ticket
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.validated_data, status=status.HTTP_201_CREATED, headers=headers)
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -180,6 +158,10 @@ class UserViewSet(viewsets.ModelViewSet):
     def update_user(self, request):
         instance = request.user
 
+        if not request.user.is_authenticated:
+            return Response('You must be logged in to perform this action.',
+                            status=status.HTTP_400_BAD_REQUEST)
+
         if request.data.get('password'):
             password_data = {'password': request.data.get('password')}
             if request.data.get('password2'):
@@ -197,12 +179,8 @@ class UserViewSet(viewsets.ModelViewSet):
             instance.set_password(serializer.validated_data.get('password'))
             instance.save()
 
-        if getattr(instance, '_prefetched_objects_cache', None):
-            # If 'prefetch_related' has been applied to a queryset, we need to
-            # forcibly invalidate the prefetch cache on the instance.
-            instance._prefetched_objects_cache = {}
-
-        return Response(serializer.data)
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, headers=headers)
 
     @action(detail=False, methods=['post'])
     def create_user(self, request):
