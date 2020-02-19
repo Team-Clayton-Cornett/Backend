@@ -73,38 +73,21 @@ class GarageSimpleSerializer(serializers.ModelSerializer):
         fields = ('pk', 'name')
 
 class TicketSerializer(serializers.ModelSerializer):
-    garage = GarageSimpleSerializer(read_only=True)
-    garage_id = serializers.PrimaryKeyRelatedField(queryset=Garage.objects.all(), source='garage', write_only=True)
-    user = serializers.PrimaryKeyRelatedField(queryset=User.objects.all(), write_only=True)
-
     class Meta:
         model = Ticket
-        fields = ('pk', 'date', 'garage', 'garage_id', 'user')
-        read_only_fields = ('day_of_week', 'garage')
+        fields = ('date', 'day_of_week')
+        read_only_fields = ('day_of_week',)
 
 class ParkSerializer(serializers.ModelSerializer):
     garage = GarageSimpleSerializer(read_only=True)
     garage_id = serializers.PrimaryKeyRelatedField(queryset=Garage.objects.all(), source='garage', write_only=True)
-    ticket = TicketSerializer(read_only=True)
-    ticket_id = serializers.PrimaryKeyRelatedField(queryset=Ticket.objects.all(), source='ticket', required=False, allow_null=True, default=None, write_only=True)
+    ticket = TicketSerializer(required=False, allow_null=True, default=None)
     end = serializers.DateTimeField(required=False, allow_null=True, default=None)
-    
-    def validate_ticket(self, ticket):
-        if ticket.user != self.contex['request'].user:
-            raise serializers.ValidationError("User must be the creator of the ticket specified.")
-
-        return ticket
-
-    def validate_ticket_id(self, ticket_id):
-        if ticket_id.user != self.context['request'].user:
-            raise serializers.ValidationError("User must be the creator of the ticket specified.")
-
-        return ticket_id
 
     class Meta:
         model = Park
-        fields = ('start', 'end', 'ticket', 'garage', 'garage_id', 'ticket_id')
-        read_fields = ('ticket', 'garage')
+        fields = ('pk', 'start', 'end', 'ticket', 'garage', 'garage_id', 'user')
+        read_only_fields = ('garage', 'pk')
 
 class PasswordSerializer(serializers.Serializer):
     password = serializers.CharField()

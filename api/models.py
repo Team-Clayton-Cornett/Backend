@@ -3,6 +3,7 @@ from django.conf import settings
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.contrib.auth.models import AbstractUser
 from django.core.validators import RegexValidator
+from django.utils import timezone
 
 from .managers import UserManager
 
@@ -49,11 +50,8 @@ class Garage(models.Model):
 class Ticket(models.Model):
     # dateTime of the ticket. Cannot be None/NULL
     date = models.DateTimeField(null=False, blank=False)
-    # garage/location of the ticket. Cannot be None/NULL
-    garage = models.ForeignKey(Garage, on_delete=models.CASCADE, null=False, blank=False)
-    # user who submitted the ticket. Should only be None/NULL for test data
-    user = models.ForeignKey('User', on_delete=models.SET_NULL, null=True, default=None)
 
+    # returns day of week
     def day_of_week(self):
         return self.date.strftime('%a')
 
@@ -65,21 +63,25 @@ class Park(models.Model):
     # end dateTime. None/NULL if ongoing
     end = models.DateTimeField(default=None)
     # ticket reference. Not ticketed for that park if set to None/NULL
-    ticket = models.ForeignKey(Ticket, on_delete=models.SET_NULL, default=None, null=True)
+    ticket = models.EmbeddedField(model_container=Ticket, null=True, blank=True, default=None)
     # garage/location of the park. Cannot be None/NULL
     garage = models.ForeignKey(Garage, on_delete=models.CASCADE, null=False, blank=False)
+    # user who created the park. Cannot be None/NULL
+    user = models.ForeignKey('User', on_delete=models.SET_NULL, null=True, blank=True)
 
 class User(AbstractUser):
     username = None
     email = models.EmailField('email address', unique=True)
     phone_regex = RegexValidator(regex=r'^\+?1?\d{9,15}$', message="Phone number must be entered in the format: '+999999999'. Up to 15 digits allowed.")
     phone = models.CharField(validators=[phone_regex], max_length=17, blank=True)
-    park = models.ArrayField(model_container=Park)
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = []
 
     objects = UserManager()
+
+    def parks(self):
+        return Park.objects.filter(user=self).order_by('start')
 
     def full_name(self):
         return self.first_name + ' ' + self.last_name
