@@ -120,7 +120,7 @@ class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ('email', 'first_name', 'last_name', 'phone', 'park', 'password')
+        fields = ('email', 'first_name', 'last_name', 'phone', 'password')
 
     def validate_email(self, email):
         existing = User.objects.filter(email=email).first()
@@ -136,7 +136,6 @@ class UserRegisterSerializer(serializers.ModelSerializer):
     phone = serializers.CharField(max_length=17, required=False)
     password = serializers.CharField(required=True, write_only=True)
     password2 = serializers.CharField(required=True, write_only=True)
-    park = ParkSerializer(many=True, required=False)
     
     class Meta:
         model = User

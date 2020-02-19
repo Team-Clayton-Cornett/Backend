@@ -107,7 +107,7 @@ class TicketViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     serializer_class = TicketSerializer
 
-    @action(detail=False, methods=['post'])
+    @action(detail=False, methods=['post', 'patch'])
     def create_user_ticket(self, request):
         try:
             park = Park.objects.get(pk=request.data['park_id'])
@@ -135,7 +135,6 @@ class TicketViewSet(viewsets.ModelViewSet):
 
         headers = self.get_success_headers(serializer.data)
         return Response(serializer.validated_data, status=status.HTTP_201_CREATED, headers=headers)
-
 
 class UserViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticatedOrPost]
