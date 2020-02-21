@@ -98,42 +98,41 @@ Using cURL: `curl -X GET https://claytoncornett.tk/api/hello_world/?format=json 
 
 * **/api/login/**  
   * Method: POST  
-  * Input:  
-    * username: string  
-    * password: string  
-  * Output:  
-    * Success:  
-       ```
-       {
-         "token": "f5fdca63b0ed56da08b96ab69c17ef63cc64f3fd"
-       }
-       ```  
-    * Invalid Credentials:  
-      ```
-      {
-        "non_field_errors": [
-          "Unable to log in with provided credentials."
-        ]
-       }
-       ```
-    * Field Errors:  
-      ```
-      {
-        "<field_name>": [
-          "This field is required."
-        ]
-      }
-      ```
-  * Description  
-    * If the provided login credentials are valid, it returns a token for SSO authentication.  
-    * If the provided login credentials or request are invalid, it returns error messages.  
-    * ***For JSON Response, `?format=json` must be provided at the end of the URL***  
-    
+    * Input:  
+      * username: string  
+      * password: string  
+    * Output:  
+      * Success (HTTP 200 SUCCESS status):  
+         ```
+         {
+           "token": "f5fdca63b0ed56da08b96ab69c17ef63cc64f3fd"
+         }
+         ```  
+      * Invalid Credentials (HTTP 400 BAD REQUEST status):  
+        ```
+        {
+          "non_field_errors": [
+            "Unable to log in with provided credentials."
+          ]
+         }
+         ```
+      * Field Errors (HTTP 400 BAD REQUEST status):  
+        ```
+        {
+          "<field_name>": [
+            "This field is required."
+          ]
+        }
+        ```
+    * Description  
+      * If the provided login credentials are valid, it returns a token for SSO authentication.  
+      * If the provided login credentials or request are invalid, it returns error messages.  
+      * ***For JSON Response, `?format=json` must be provided at the end of the URL***  
 * **/api/user/**  
   * Method: GET  
     * Input: *None*  
     * Output:  
-      * Success:  
+      * Success (HTTP 200 SUCCESS status):  
          ```
          {
            "email": "<email>",
@@ -142,7 +141,7 @@ Using cURL: `curl -X GET https://claytoncornett.tk/api/hello_world/?format=json 
            "phone": "<phone_number OR null>"
          }
          ```  
-      * Non-Field Errors  
+      * Non-Field Errors (HTTP 400 BAD REQUEST status):  
         ```
         {
           "non_field_errors": [
@@ -162,14 +161,14 @@ Using cURL: `curl -X GET https://claytoncornett.tk/api/hello_world/?format=json 
       * password: string, *required*  
       * password2: string, *required*, *must match password*  
     * Output:  
-      * Success:  
+      * Success (HTTP 201 CREATED status):  
          ```
          {
            "token": "f5fdca63b0ed56da08b96ab69c17ef63cc64f3fd",
            "user": <user_JSON_object>
          }
          ```  
-      * Non-Field Errors ex) User already exists:  
+      * Non-Field Errors ex) User already exists (HTTP 400 BAD REQUEST status):  
         ```
         {
           "non_field_errors": [
@@ -177,7 +176,7 @@ Using cURL: `curl -X GET https://claytoncornett.tk/api/hello_world/?format=json 
           ]
          }
          ```
-      * Field Errors ex) Invalid field, passwords did not match, etc.:  
+      * Field Errors ex) Invalid field, passwords did not match, etc. (HTTP 400 BAD REQUEST status):  
         ```
         {
           "<field_name>": [
@@ -198,13 +197,13 @@ Using cURL: `curl -X GET https://claytoncornett.tk/api/hello_world/?format=json 
       * password2: string, *required if password is in input*, *must match password*  
       * park: array of park JSON objects, *default:* `null`  
     * Output:  
-      * Success:  
+      * Success (HTTP 200 SUCCESS status):  
          ```
          {
            <user_JSON_object>
          }
          ```  
-      * Non-Field Errors ex) User already exists:  
+      * Non-Field Errors ex) User already exists (HTTP 400 BAD REQUEST status):  
         ```
         {
           "non_field_errors": [
@@ -212,7 +211,7 @@ Using cURL: `curl -X GET https://claytoncornett.tk/api/hello_world/?format=json 
           ]
          }
          ```
-      * Field Errors ex) Invalid field, passwords did not match, etc.:  
+      * Field Errors ex) Invalid field, passwords did not match, etc. (HTTP 400 BAD REQUEST status):  
         ```
         {
           "<field_name>": [
@@ -229,13 +228,13 @@ Using cURL: `curl -X GET https://claytoncornett.tk/api/hello_world/?format=json 
       * park_id: number, *required*
       * date: string, *ISO Format*, *required*   
     * Output:  
-      * Success:  
+      * Success (HTTP 201 CREATED status):  
          ```
          {
            "date": <ISO_date_string>,
          }
          ```  
-      * Non-Field Errors  
+      * Non-Field Errors (HTTP 400 BAD REQUEST status):  
         ```
         {
           "non_field_errors": [
@@ -243,7 +242,7 @@ Using cURL: `curl -X GET https://claytoncornett.tk/api/hello_world/?format=json 
           ]
          }
          ```
-      * Field Errors ex) Invalid date, park DNE, etc.:  
+      * Field Errors ex) Invalid date, park DNE, etc. (HTTP 400 BAD REQUEST status):  
         ```
         {
           "<field_name>": [
@@ -261,13 +260,13 @@ Using cURL: `curl -X GET https://claytoncornett.tk/api/hello_world/?format=json 
       * park_id: number, *required*
       * date: string, *ISO Format*, *required*   
     * Output:  
-      * Success:  
+      * Success (HTTP 200 SUCCESS status):  
          ```
          {
            "date": <ISO_date_string>,
          }
          ```  
-      * Non-Field Errors  
+      * Non-Field Errors (HTTP 400 BAD REQUEST status):  
         ```
         {
           "non_field_errors": [
@@ -275,7 +274,7 @@ Using cURL: `curl -X GET https://claytoncornett.tk/api/hello_world/?format=json 
           ]
          }
          ```
-      * Field Errors ex) Invalid date, park DNE, etc.:  
+      * Field Errors ex) Invalid date, park DNE, etc. (HTTP 400 BAD REQUEST status):  
         ```
         {
           "<field_name>": [
@@ -293,7 +292,7 @@ Using cURL: `curl -X GET https://claytoncornett.tk/api/hello_world/?format=json 
     * Input:  
       * pk: number, *optional*
     * Output:  
-      * Success:  
+      * Success (HTTP 200 SUCCESS status):  
          ```
          [
           {
@@ -310,7 +309,7 @@ Using cURL: `curl -X GET https://claytoncornett.tk/api/hello_world/?format=json 
           {...}
         ]
          ```  
-      * Non-Field Errors  
+      * Non-Field Errors (HTTP 400 BAD REQUEST status):  
         ```
         {
           "non_field_errors": [
@@ -334,7 +333,7 @@ Using cURL: `curl -X GET https://claytoncornett.tk/api/hello_world/?format=json 
           }
           ```
     * Output:  
-      * Success:  
+      * Success (HTTP 200 SUCCESS status):  
          ```
          {
            "start": "<ISO_date_string",
@@ -353,7 +352,7 @@ Using cURL: `curl -X GET https://claytoncornett.tk/api/hello_world/?format=json 
            }
          }
          ```  
-      * Non-Field Errors  
+      * Non-Field Errors (HTTP 400 BAD REQUEST status):  
         ```
         {
           "non_field_errors": [
@@ -361,7 +360,7 @@ Using cURL: `curl -X GET https://claytoncornett.tk/api/hello_world/?format=json 
           ]
          }
          ```
-      * Field Errors ex) Invalid field, garage DNE, ticket DNE, etc.:  
+      * Field Errors ex) Invalid field, garage DNE, ticket DNE, etc. (HTTP 400 BAD REQUEST status):  
         ```
         {
           "<field_name>": [
@@ -373,3 +372,117 @@ Using cURL: `curl -X GET https://claytoncornett.tk/api/hello_world/?format=json 
       * If all fields are valid, creates a park for the user. Returns a copy of the created park
       * Will return field and non-field errors if input does not pass validation
       * ***MUST BE AUTHENTICATED***
+      
+* **/api/user/password_reset/create/**  
+  * Method: POST  
+    * Input:  
+      * email: string, *required*  
+    * Output:  
+      * Success (HTTP 201 CREATED status):  
+         ```
+         "Successfully created password reset token."
+         ```  
+      * Non-Field Errors (HTTP 400 BAD REQUEST status):  
+        ```
+        {
+          "non_field_errors": [
+            "Unable to log in with provided credentials."
+          ]
+         }
+         ```
+      * Field Errors ex) Invalid email (HTTP 400 BAD REQUEST status):  
+        ```
+        {
+          "<field_name>": [
+            "A user with the specified email does not exist."
+          ]
+        }
+        ```
+    * Description  
+      * If email is valid and associated with a user, creates a password reset token and sends an email with the token. Returns success message
+      * Will return field and non-field errors if input does not pass validation
+* **/api/user/password_reset/validate_token/**  
+  * Method: POST  
+    * Input:  
+      * email: string, *required*  
+      * token: string, *required*
+    * Output:  
+      * Success (HTTP 200 SUCCESS status):  
+         ```
+         {
+           "token": "<password_reset_token>",
+           "email": "<email>"
+         }
+         ```  
+      * Non-Field Errors (HTTP 400 BAD REQUEST status):  
+        ```
+        {
+          "non_field_errors": [
+            "<error message>"
+          ]
+         }
+         ```
+      * Field Errors ex) Invalid email (HTTP 400 BAD REQUEST status):  
+        ```
+        {
+          "<field_name>": [
+            "<error message>"
+          ]
+        }
+        ```
+        * Invalid Token (HTTP 400 BAD REQUEST status):  
+        ```
+        {
+          "token": "Invalid token provided.",
+          "attempts": <number of attempts remaining>
+        }
+        ```
+    * Description  
+      * If the provided email and token are valid, returns the email and token with 200 status. 
+      * If the provided token is invalid for email, attempts is decremented by one and error message returned.
+      * Only 3 attempts are allowed until a new token must be created
+      * Will return field and non-field errors if input does not pass validation
+* **/api/user/password_reset/reset/**  
+  * Method: POST  
+    * Input:  
+      * email: string, *required*  
+      * token: string, *required*
+      * password: string, *required*
+      * password2: string, *required*
+    * Output:  
+      * Success (HTTP 200 SUCCESS status):  
+         ```
+         {
+           "token": "<user auth token>",
+           "email": "<email>"
+         }
+         ```  
+      * Non-Field Errors (HTTP 400 BAD REQUEST status):  
+        ```
+        {
+          "non_field_errors": [
+            "<error message>"
+          ]
+         }
+         ```
+      * Field Errors ex) Invalid email (HTTP 400 BAD REQUEST status):  
+        ```
+        {
+          "<field_name>": [
+            "<error message>"
+          ]
+        }
+        ```
+        * Invalid Token (HTTP 400 BAD REQUEST status):  
+        ```
+        {
+          "token": "Invalid token provided.",
+          "attempts": <number of attempts remaining>
+        }
+        ```
+    * Description  
+      * If the provided email and token are valid and the provided passwords are valid, returns the email and user auth token with 200 status. 
+      * If the provided token is invalid for email, attempts is decremented by one and error message returned.
+      * If the passwords are not valid, returns error message.
+      * Only 3 attempts are allowed for invalid token until a new token must be created
+      * Will return field and non-field errors if input does not pass validation
