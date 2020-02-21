@@ -6,7 +6,10 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.authtoken.models import Token
 from django.utils.dateparse import parse_datetime
+from django.utils.html import strip_tags
 from django.forms.models import model_to_dict
+from django.template.loader import render_to_string
+from django.core.mail import send_mail
 from datetime import datetime, timedelta
 import re
 import random
@@ -215,6 +218,7 @@ class PasswordResetViewSet(viewsets.ModelViewSet):
     permission_classes = []
     serializer_class = PasswordResetSerializer
 
+
     @action(detail=False, methods=['post'])
     def generate_password_reset_token(self, request):
         serializer = GeneratePasswordResetTokenSerializer(data=request.data)
@@ -232,6 +236,21 @@ class PasswordResetViewSet(viewsets.ModelViewSet):
             user.passwordresettoken.save()
         else:
             password_reset_token = PasswordResetToken.objects.create(user=user, token=token, expires=expires, attempts=attempts)
+
+        # generate email content
+        email_template = render_to_string('password_reset_email.html', {'token': token})
+        # Remove html tags and continuous whitespaces
+        text_email = re.sub('[ \t]+', ' ', strip_tags(email_template))
+        # Strip single spaces in the beginning of each line
+        text_email = text_email.replace('\n ', '\n').strip()
+        subject = "Password Reset for Clayton Cornett App"
+        sender = "no-reply@claytoncornett.tk"
+        to = [user.email]
+
+        try:
+            send_mail(subject=subject, message=text_email, from_email=sender, recipient_list=to, html_message=email_template, fail_silently=False)
+        except:
+            return Response({'Failed to send password reset email.'}, status=status.HTTP_400_BAD_REQUEST)
 
         headers = self.get_success_headers(serializer.data)
         return Response('Successfully created password reset token.', status=status.HTTP_201_CREATED, headers=headers)

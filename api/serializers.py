@@ -214,7 +214,7 @@ class PasswordResetSerializer(serializers.Serializer):
                 user.passwordresettoken.attempts -= 1
                 user.passwordresettoken.save()
 
-                raise serializers.ValidationError({'error': 'Invalid token provided', 'attempts': user.passwordresettoken.attempts})
+                raise serializers.ValidationError({'error': 'Invalid token provided.', 'attempts': user.passwordresettoken.attempts})
 
             password_serializer = PasswordSerializer(data={'password': data.get('password', None), 'password2': data.get('password2', None)}, context={'user': user})
             password_serializer.is_valid(raise_exception=True)
