@@ -193,6 +193,12 @@ class ValidateResetTokenSerializer(serializers.Serializer):
         if errors:
             raise serializers.ValidationError(errors)
 
+        if data.get('token', None) != user.passwordresettoken.token:
+            user.passwordresettoken.attempts -= 1
+            user.passwordresettoken.save()
+
+            raise serializers.ValidationError({'error': 'Invalid token provided.', 'attempts': user.passwordresettoken.attempts})
+
         return data
 
 class PasswordResetSerializer(serializers.Serializer):
@@ -210,13 +216,9 @@ class PasswordResetSerializer(serializers.Serializer):
             token_serializer = ValidateResetTokenSerializer(data={'email': data.get('email', None), 'token': data.get('token', None)})
             token_serializer.is_valid(raise_exception=True)
 
-            if data.get('token', None) != user.passwordresettoken.token:
-                user.passwordresettoken.attempts -= 1
-                user.passwordresettoken.save()
-
-                raise serializers.ValidationError({'error': 'Invalid token provided.', 'attempts': user.passwordresettoken.attempts})
-
             password_serializer = PasswordSerializer(data={'password': data.get('password', None), 'password2': data.get('password2', None)}, context={'user': user})
             password_serializer.is_valid(raise_exception=True)
+        else:
+            raise serializers.ValidationError({'email': 'A user with the specified email does not exist.'})
 
         return data

@@ -262,13 +262,6 @@ class PasswordResetViewSet(viewsets.ModelViewSet):
 
         user = User.objects.get(email=serializer.validated_data['email'])
 
-        if serializer.validated_data['token'] != user.passwordresettoken.token:
-            user.passwordresettoken.attempts -= 1
-            user.passwordresettoken.save()
-
-            return Response({'error': 'Invalid token provided', 'attempts': user.passwordresettoken.attempts},
-                            status=status.HTTP_400_BAD_REQUEST)
-
         headers = self.get_success_headers(serializer.data)
         return Response(serializer.validated_data, headers=headers)
 
