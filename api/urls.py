@@ -54,9 +54,24 @@ park_detail = viewsets.ParkViewSet.as_view({
     'patch': 'update_user_park'
 })
 
+password_reset_create = viewsets.PasswordResetViewSet.as_view({
+    'post': 'generate_password_reset_token'
+})
+
+password_reset_validate_token = viewsets.PasswordResetViewSet.as_view({
+    'post': 'validate_password_reset_token'
+})
+
+password_reset_reset = viewsets.PasswordResetViewSet.as_view({
+    'post': 'reset_password'
+})
+
 urlpatterns = [
     path('login/', obtain_auth_token, name='api_login'),
     path('user/', user_detail, name='user'),
+    path('user/password_reset/create/', password_reset_create, name='user_password_reset_create'),
+    path('user/password_reset/validate_token/', password_reset_validate_token, name='user_password_reset_validate_token'),
+    path('user/password_reset/reset/', password_reset_reset, name='user_password_reset_reset'),
     path('user/ticket/', ticket_detail, name='ticket'),
     path('user/tickets/unassigned', user_unassigned_tickets, name='user_unassigned_tickets'),
     path('user/park/', park_detail, name='park'),

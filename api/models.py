@@ -88,3 +88,13 @@ class User(AbstractUser):
 
     def __str__(self):
         return self.email
+
+class PasswordResetToken(models.Model):
+    # user associated with the reset token
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    # reset token string. 6 character string A-Z (excluding O),0-9
+    token = models.CharField(max_length=6, blank=False, null=False)
+    # expiry date (should be one hour from creation, view determines this)
+    expires = models.DateTimeField(null=False, blank=False)
+    # number of attempts remaining, if any attempts after it reaches 0 the reset token must be recreated
+    attempts = models.IntegerField(default=3)

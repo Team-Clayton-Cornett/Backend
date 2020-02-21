@@ -5,7 +5,7 @@ from django.contrib.auth.password_validation import validate_password as django_
 from rest_framework.fields import CurrentUserDefault
 import re
 
-from .models import Probability, DayProbability, Garage, Ticket, Park, User
+from .models import Probability, DayProbability, Garage, Ticket, Park, User, PasswordResetToken
 
 class ProbabilitySerializer(serializers.ModelSerializer):
     class Meta:
@@ -153,3 +153,70 @@ class UserRegisterSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Invalid phone number format.")
 
         return phone
+
+class PasswordResetTokenSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PasswordResetToken
+        fields = ('user', 'token', 'expires', 'attempts')
+
+class GeneratePasswordResetTokenSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+
+    def validate_email(self, email):
+        existing = User.objects.filter(email=email).first()
+
+        if not existing:
+            raise serializers.ValidationError("A user with the specified email does not exist.")
+
+        return email
+
+class ValidateResetTokenSerializer(serializers.Serializer):
+    token = serializers.CharField(max_length=6)
+    email = serializers.EmailField()
+
+    def validate(self, data):
+        errors = dict()
+
+        user = User.objects.get(email=data.get('email'))
+
+        if user:
+            if not hasattr(user, 'passwordresettoken'):
+                errors['non_field_errors'] = "User has not generated a password reset token."
+            else:
+                if user.passwordresettoken.expires < datetime.datetime.now():
+                    errors['token'] = "Password reset token has expired."
+                elif user.passwordresettoken.attempts <= 0:
+                    errors['token'] = "Too many attempts to reset password using the current token."
+        else:
+            errors['email'] = "A user with the specified email does not exist."
+
+        if errors:
+            raise serializers.ValidationError(errors)
+
+        return data
+
+class PasswordResetSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    token = serializers.CharField(max_length=6)
+    password = serializers.CharField()
+    password2 = serializers.CharField()
+
+    def validate(self, data):
+        errors = dict()
+
+        user = User.objects.get(email=data.get('email'))
+
+        if user:
+            token_serializer = ValidateResetTokenSerializer(data={'email': data.get('email', None), 'token': data.get('token', None)})
+            token_serializer.is_valid(raise_exception=True)
+
+            if data.get('token', None) != user.passwordresettoken.token:
+                user.passwordresettoken.attempts -= 1
+                user.passwordresettoken.save()
+
+                raise serializers.ValidationError({'error': 'Invalid token provided', 'attempts': user.passwordresettoken.attempts})
+
+            password_serializer = PasswordSerializer(data={'password': data.get('password', None), 'password2': data.get('password2', None)}, context={'user': user})
+            password_serializer.is_valid(raise_exception=True)
+
+        return data

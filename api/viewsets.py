@@ -1,5 +1,5 @@
-from .models import Garage, User, Park, Ticket
-from .serializers import  GarageSerializer, UserSerializer, UserRegisterSerializer, PasswordSerializer, TicketSerializer, ParkSerializer
+from .models import Garage, User, Park, Ticket, PasswordResetToken
+from .serializers import  GarageSerializer, UserSerializer, UserRegisterSerializer, PasswordSerializer, TicketSerializer, ParkSerializer, GeneratePasswordResetTokenSerializer, PasswordResetSerializer, ValidateResetTokenSerializer
 from rest_framework import viewsets, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import action
@@ -7,8 +7,10 @@ from rest_framework.response import Response
 from rest_framework.authtoken.models import Token
 from django.utils.dateparse import parse_datetime
 from django.forms.models import model_to_dict
+from datetime import datetime, timedelta
 import re
-import datetime
+import random
+import string
 
 from .permissions import IsAuthenticatedOrPost
 
@@ -208,3 +210,62 @@ class UserViewSet(viewsets.ModelViewSet):
         user.save()
 
         return user
+
+class PasswordResetViewSet(viewsets.ModelViewSet):
+    permission_classes = []
+    serializer_class = PasswordResetSerializer
+
+    @action(detail=False, methods=['post'])
+    def generate_password_reset_token(self, request):
+        serializer = GeneratePasswordResetTokenSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        user = User.objects.get(email=serializer.validated_data['email'])
+        token = ''.join(random.choice((string.ascii_uppercase + string.digits).replace('O', '')) for _ in range(6))
+        expires = datetime.now() + timedelta(hours=1)
+        attempts = 3
+
+        if hasattr(user, 'passwordresettoken'):
+            user.passwordresettoken.token = token
+            user.passwordresettoken.expires = expires
+            user.passwordresettoken.attempts = attempts
+            user.passwordresettoken.save()
+        else:
+            password_reset_token = PasswordResetToken.objects.create(user=user, token=token, expires=expires, attempts=attempts)
+
+        headers = self.get_success_headers(serializer.data)
+        return Response('Successfully created password reset token.', status=status.HTTP_201_CREATED, headers=headers)
+
+    @action(detail=False, methods=['post'])
+    def validate_password_reset_token(self, request):
+        serializer = ValidateResetTokenSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        user = User.objects.get(email=serializer.validated_data['email'])
+
+        if serializer.validated_data['token'] != user.passwordresettoken.token:
+            user.passwordresettoken.attempts -= 1
+            user.passwordresettoken.save()
+
+            return Response({'error': 'Invalid token provided', 'attempts': user.passwordresettoken.attempts},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.validated_data, headers=headers)
+
+    @action(detail=False, methods=['post'])
+    def reset_password(self, request):
+        serializer = PasswordResetSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        user = User.objects.get(email=serializer.validated_data['email'])
+
+        user.set_password(serializer.validated_data.get('password'))
+        user.save()
+
+        user.passwordresettoken.delete()
+
+        token, created = Token.objects.get_or_create(user=user)
+
+        headers = self.get_success_headers(serializer.data)
+        return Response({'email': serializer.validated_data['email'], 'token': token.key}, headers=headers)
