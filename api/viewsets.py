@@ -152,15 +152,15 @@ class UserViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['post'])
     def verify_token(self, request):
-        try:
-            token = Token.objects.get(key=request.data['token'])
+        # try:
+        token = Token.objects.get(key=request.data['token'])
 
-            if token:
-                return Response(True, status=status.HTTP_200_SUCCESS)
+        if token:
+            return Response(True)
             
-            return Response(False, status=status.HTTP_401_UNAUTHORIZED)
-        except:
-            return Response(False, status=status.HTTP_401_UNAUTHORIZED)
+        return Response(False, status=status.HTTP_401_UNAUTHORIZED)
+        # except:
+            # return Response(False, status=status.HTTP_401_UNAUTHORIZED)
 
     @action(detail=True, methods=['get'])
     def get_user(self, request):
