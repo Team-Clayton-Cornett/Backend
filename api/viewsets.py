@@ -156,7 +156,7 @@ class UserViewSet(viewsets.ModelViewSet):
             token = Token.objects.get(key=request.data['token'])
 
             if token:
-                return Reponse(True, status=status.HTTP_200_SUCCESS)
+                return Response(True, status=status.HTTP_200_SUCCESS)
             
             return Response(False, status=status.HTTP_401_UNAUTHORIZED)
         except:
