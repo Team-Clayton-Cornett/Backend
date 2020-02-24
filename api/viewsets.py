@@ -117,11 +117,11 @@ class TicketViewSet(viewsets.ModelViewSet):
         try:
             park = Park.objects.get(pk=request.data['park_id'])
         except:
-            return Response('Park with pk ' + str(pk) + ' does not exist.',
+            return Response({'park_id': ['Park with pk ' + str(pk) + ' does not exist.']},
                             status=status.HTTP_400_BAD_REQUEST)
 
         if park.user != request.user:
-            return Response('The user does not own this park.',
+            return Response({'non_field_errors': ['The user does not own this park.']},
                             status=status.HTTP_400_BAD_REQUEST)
 
         serializer = self.get_serializer(data=request.data)
@@ -130,7 +130,7 @@ class TicketViewSet(viewsets.ModelViewSet):
         if serializer.validated_data.get('date'):
             date = serializer.validated_data.get('date')
             if date < park.start or park.end != None and date > park.end:
-                return Response('The date of the ticket must be during park time.',
+                return Response({'date': ['The date of the ticket must be during park time.']},
                             status=status.HTTP_400_BAD_REQUEST)
 
         ticket = Ticket(**serializer.validated_data)
@@ -155,7 +155,7 @@ class UserViewSet(viewsets.ModelViewSet):
         if request.user.is_authenticated:
             return Response(UserSerializer(request.user).data)
         else:
-            return Response('You must be logged in to perform this action.',
+            return Response({'non_field_errors': ['You must be logged in to perform this action.']},
                             status=status.HTTP_400_BAD_REQUEST)
 
     @action(detail=False, methods=['patch'])
@@ -163,7 +163,7 @@ class UserViewSet(viewsets.ModelViewSet):
         instance = request.user
 
         if not request.user.is_authenticated:
-            return Response('You must be logged in to perform this action.',
+            return Response({'non_field_errors': ['You must be logged in to perform this action.']},
                             status=status.HTTP_400_BAD_REQUEST)
 
         if request.data.get('password'):
@@ -250,10 +250,10 @@ class PasswordResetViewSet(viewsets.ModelViewSet):
         try:
             send_mail(subject=subject, message=text_email, from_email=sender, recipient_list=to, html_message=email_template, fail_silently=False)
         except:
-            return Response({'Failed to send password reset email.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'non_field_errors': ['Failed to send password reset email.']}, status=status.HTTP_400_BAD_REQUEST)
 
         headers = self.get_success_headers(serializer.data)
-        return Response('Successfully created password reset token.', status=status.HTTP_201_CREATED, headers=headers)
+        return Response({}, status=status.HTTP_201_CREATED, headers=headers)
 
     @action(detail=False, methods=['post'])
     def validate_password_reset_token(self, request):
