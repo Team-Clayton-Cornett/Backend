@@ -43,6 +43,10 @@ user_unassigned_tickets = viewsets.TicketViewSet.as_view({
     'get': 'get_user_unassigned_tickets'
 })
 
+user_verify = viewsets.UserViewSet.as_view({
+    'post': 'verify_token'
+})
+
 ticket_detail = viewsets.TicketViewSet.as_view({
     'post': 'create_user_ticket',
     'patch': 'create_user_ticket'
@@ -75,6 +79,7 @@ urlpatterns = [
     path('user/ticket/', ticket_detail, name='ticket'),
     path('user/tickets/unassigned', user_unassigned_tickets, name='user_unassigned_tickets'),
     path('user/park/', park_detail, name='park'),
+    path('user/verify/', user_verify, name='user_verify'),
     path('garages/', garage_list, name='garage_list'),
     path('garages/<str:day_of_week>/', garage_list, name='garage_list_day_of_week'),
     path('garages/<str:day_of_week>/<str:time>/', garage_list, name='garage_list_day_of_week'),
