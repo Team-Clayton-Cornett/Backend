@@ -118,3 +118,5 @@ GitHub.sublime-settings
 # Training Data
 training_data/*
 
+#Openrouteservice Api Key
+route_visualization/api_key.txt
