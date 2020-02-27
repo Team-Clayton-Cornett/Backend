@@ -47,6 +47,10 @@ user_verify = viewsets.UserViewSet.as_view({
     'post': 'verify_token'
 })
 
+user_logout = viewsets.UserViewSet.as_view({
+    'post': 'logout'
+})
+
 ticket_detail = viewsets.TicketViewSet.as_view({
     'post': 'create_user_ticket',
     'patch': 'create_user_ticket'
@@ -72,6 +76,7 @@ password_reset_reset = viewsets.PasswordResetViewSet.as_view({
 
 urlpatterns = [
     path('login/', obtain_auth_token, name='api_login'),
+    path('logout/', user_logout, name='api_logout'),
     path('user/', user_detail, name='user'),
     path('user/password_reset/create/', password_reset_create, name='user_password_reset_create'),
     path('user/password_reset/validate_token/', password_reset_validate_token, name='user_password_reset_validate_token'),

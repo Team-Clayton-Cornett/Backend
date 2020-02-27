@@ -15,7 +15,7 @@ import re
 import random
 import string
 
-from .permissions import IsAuthenticatedOrPost
+from .permissions import IsAuthenticatedOrCreate
 
 class GarageViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Garage.objects.all()
@@ -142,7 +142,7 @@ class TicketViewSet(viewsets.ModelViewSet):
         return Response(serializer.validated_data, status=status.HTTP_201_CREATED, headers=headers)
 
 class UserViewSet(viewsets.ModelViewSet):
-    permission_classes = [IsAuthenticatedOrPost]
+    permission_classes = [IsAuthenticatedOrCreate]
     serializer_class = UserSerializer
 
     def get_queryset(self):
@@ -152,15 +152,30 @@ class UserViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['post'])
     def verify_token(self, request):
-        # try:
-        token = Token.objects.get(key=request.data['token'])
+        try:
+            user = request.user
+            token = Token.objects.get(user=user)
 
-        if token:
-            return Response(True)
+            if token:
+                return Response(True)
             
-        return Response(False, status=status.HTTP_401_UNAUTHORIZED)
-        # except:
-            # return Response(False, status=status.HTTP_401_UNAUTHORIZED)
+            return Response(False, status=status.HTTP_401_UNAUTHORIZED)
+        except:
+            return Response(False, status=status.HTTP_401_UNAUTHORIZED)
+
+    @action(detail=False, methods=['post'])
+    def logout(self, request):
+        try:
+            user = request.user
+            token = Token.objects.get(user=user)
+
+            if token:
+                token.delete()
+                return Response(True)
+
+            return Response(False, status=status.HTTP_400_BAD_REQUEST)
+        except:
+            return Response(False, status=status.HTTP_400_BAD_REQUEST)
 
     @action(detail=True, methods=['get'])
     def get_user(self, request):
