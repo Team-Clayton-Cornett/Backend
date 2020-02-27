@@ -11,6 +11,12 @@ https://docs.djangoproject.com/en/3.0/ref/settings/
 """
 
 import os
+from configparser import RawConfigParser
+
+# Import secret config values from project settings.ini
+# SECURITY WARNING: This file should not be in the repository
+config = RawConfigParser()
+config.read('/etc/capstone/settings.ini')
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -20,7 +26,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # See https://docs.djangoproject.com/en/3.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = '56m)_$@_oya+_gg2mh-%d#y-$s_bj4-go70ojyj)l=mae+isro'
+SECRET_KEY = config.get('config', 'SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -132,3 +138,8 @@ STATIC_ROOT = os.path.join(BASE_DIR, "static/")
 STATIC_URL = '/static/'
 
 AUTH_USER_MODEL = 'api.User'
+
+EMAIL_HOST = config.get('config', 'EMAIL_HOST')
+EMAIL_PORT = config.get('config', 'EMAIL_PORT')
+EMAIL_HOST_USER = config.get('config', 'EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD = config.get('config', 'EMAIL_HOST_PASSWORD')
