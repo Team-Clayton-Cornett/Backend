@@ -2,6 +2,7 @@ import csv
 import math
 import json
 import numpy as np
+import os
 
 from django.core.management.base import BaseCommand, CommandError
 from xgboost import XGBClassifier
@@ -115,7 +116,12 @@ class Command(BaseCommand):
     def load_csv(self):
         # A daily copy is kept, named by day
         today = date.today()
-        training_set = open(('training_data/tickets_' + today.strftime("%m-%d-%Y") +'.csv'), 'w', newline='')
+
+        # just in case training_data dir does not exist yet
+        filename = 'training_data/tickets_' + today.strftime("%m-%d-%Y") +'.csv'
+        os.makedirs(os.path.dirname(filename), exist_ok=True)
+
+        training_set = open((filename), 'w', newline='')
 
         # the data we are training on
         writer = csv.writer(training_set)
