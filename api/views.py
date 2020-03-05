@@ -4,6 +4,8 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.utils import timezone
 import datetime
+import json
+import math
 from random import random
 
 # local models
@@ -56,6 +58,109 @@ def create_random_parks(n):
 
             # create park object
             create_park(start=start, end=end, ticket=ticket, garage=garage, user=user)
+
+# first attempt at creating test data with meaning/trends behind it
+def create_structured_parks():
+    date = datetime.datetime(2020, 2, 17, 8)
+    
+    # for now, only create parks on the weekdays
+    for i in range (5):
+        create_structured_parks_for_day(date)
+        date + datetime.timedelta(days=1)
+
+# creates the park data for one day
+def create_structured_parks_for_day(day_start):
+    user = User.objects.get(first_name='Test Data')
+    garages = Garage.objects.all()
+    
+    # uses the route finder data to try and "intelligently" use possible routes the parking
+    # attendents could take
+
+    # for now, three routes / clusters
+    num_routes = 3
+    routes = []
+    # load in the routes from the output route files of route_finder.py command
+    for i in range(num_routes):
+        routes.append(load_routes("route_visualization/CondensedRoutes/condensed_route_g"+str((i+1))+".json"))
+
+    # constant, just a guess of how long it takes them to patrol a lot 
+    time_to_ticket_lot = 7
+    # random amount of tickets they give at each lot
+    num_tickets = (math.floor(random()*100) % 15) + 1
+
+    # the current time of the patrol
+    current_patrol_dt = None
+    # time they leave each lot
+    leaveTime = []
+
+    # iterate over each route
+    for route in routes:
+        # start at 8:00am
+        current_patrol_dt = day_start
+
+        # iterate over each place in the route, IN ORDER
+        for place in route:
+            # update the time they visit the lot, add on the time it takes to get between lots
+            current_patrol_dt = current_patrol_dt + datetime.timedelta(seconds=(math.floor(place[1])))
+            
+            # give out tickets at each lot
+            for i in range(num_tickets):
+                # get the park dates/times based on the current time
+                dates = generate_start_end_ticket_dates(current_patrol_dt)
+                
+                # find the garage object that relates to the current place being enforced in the route
+                garageParked = None
+                for garage in garages:
+                    if(place[0] == garage.name):
+                        garageParked = garage
+
+                # create the park in the DB
+                create_park(start=dates[0], end=dates[1], ticket=Ticket(date=dates[2]), garage=garageParked, user=user)
+            
+            # update the current time with the time it takes to ticket a lot
+            current_patrol_dt = current_patrol_dt + datetime.timedelta(minutes=time_to_ticket_lot)
+        # get the time they leave the last place in the route for each route, 
+        # they will restart the route at this time in the next step
+        leaveTime.append(current_patrol_dt)
+
+    indx=0
+
+    # for now, I do run the routes a second time, 
+    # becuase it ended up finishing each route about halfway through the day
+    for route in routes:
+        current_patrol_dt = leaveTime[indx]
+        for place in route:
+            current_patrol_dt = current_patrol_dt + datetime.timedelta(seconds=(math.floor(place[1])))
+            for i in range(num_tickets):
+                dates = generate_start_end_ticket_dates(current_patrol_dt)
+                garageParked = None
+                for garage in garages:
+                    if(place[0] == garage.name):
+                        garageParked = garage
+                create_park(start=dates[0], end=dates[1], ticket=Ticket(date=dates[2]), garage=garageParked, user=user)
+            current_patrol_dt = current_patrol_dt + datetime.timedelta(minutes=time_to_ticket_lot)
+        indx = indx + 1
+
+# generates "random" park start time, end time, and ticket time
+def generate_start_end_ticket_dates(date_start):
+   # random start/end time within two hours
+    offset_start = (math.floor(random()*100)%120) + 10
+    offset_end = (math.floor(random()*100)%120) + 10
+
+    park_start = date_start - datetime.timedelta(minutes = offset_start)
+    park_end = date_start + datetime.timedelta(minutes = offset_end)
+
+    # ticket it randomly within the start/end time of the park
+    ticket_date = date_start + datetime.timedelta(minutes=(math.floor(random()*100) % 10))
+
+    return(park_start, park_end, ticket_date)
+
+# loads the routes from file as array
+def load_routes(filename):
+    with open(filename) as f:
+        route_array = json.load(f)
+        return route_array
+
 
 """
 Example Class-Based REST View:
