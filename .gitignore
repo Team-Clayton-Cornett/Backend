@@ -120,3 +120,6 @@ training_data/*
 
 #Openrouteservice Api Key
 route_visualization/api_key.txt
+
+# Cron Logs
+cron_logs/*
