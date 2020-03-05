@@ -1,8 +1,9 @@
 import csv
 import math
+import json
+import numpy as np
 
 from django.core.management.base import BaseCommand, CommandError
-from numpy import loadtxt
 from xgboost import XGBClassifier
 from datetime import date
 from enum import IntEnum 
@@ -21,6 +22,11 @@ class WasTicketed(IntEnum):
 # Loads and formats training data into .csv for processing and redundancy
 # Attempts to recalibrate model based on new ticket data
 # Updates the ticketing probabilities in the DB
+
+
+# Example Crontab command (everyday at 1:00 AM):
+# 0 1  * * * cd <project root> &&  <project root>/venv/bin/python <project root>/manage.py xgboost_daily >> <cron output location> 2>&1
+
 class Command(BaseCommand):
     help = '*Create Help Text*'
 
@@ -28,32 +34,82 @@ class Command(BaseCommand):
         # lead today's training data
         self.load_csv()
 
-        # load data
-        dataset = loadtxt('training_data/tickets_02-22-2020.csv', delimiter=",", usecols=range(4), skiprows=1)
+        # load today's data
+        today = date.today()
+        dataset = np.loadtxt('training_data/tickets_' + today.strftime("%m-%d-%Y") +'.csv', delimiter=",", usecols=range(4), skiprows=1)
+        
         # split data into X and y
         X = dataset[:,0:3]
         Y = dataset[:,3]
-        # split data into train and test sets
-        seed = 1
-        test_size = 0.33
-        X_train, X_test, y_train, y_test = train_test_split(X, Y, test_size=test_size, random_state=seed)
-        # fit model no training data
+
+        # fit model
         model = XGBClassifier()
-        model.fit(X_train, y_train)
+        model.fit(X, Y)
 
-        # make predictions for test data
-        
-        print(X_test)
+        # use updated model to write new probabilites for each time interval to the DB
+        self.write_probabilities_to_database(model)
 
-        y_pred = model.predict(X_test)
+        self.stdout.write('The xgboost_daily task was ran at ' + str(today))
 
-        print(y_pred)
-        predictions = [round(value) for value in y_pred]
-        # evaluate predictions
-        accuracy = accuracy_score(y_test, predictions)
-        print("Accuracy: %.2f%%" % (accuracy * 100.0))
+    # writes new probabilities to DB, based on the newly updated model
+    def write_probabilities_to_database(self, model):
+        # get all garages
+        queryset = Garage.objects.all()
 
-        self.stdout.write('The xgboost_daily task was ran.')
+        # there are 51744 probabilites to write (7 days * 77 garages * 96 intervals in the day)
+        X_test = np.zeros((51744,3))
+        inx = 0
+        # init the input dataset that we are going to use the model to predict on
+        for i in range(77):
+            for j in range(7):
+                for k in range(96):
+                    # time interval
+                    X_test[inx][0] = k
+                    # day of week
+                    X_test[inx][1] = j
+                    # garage
+                    X_test[inx][2] = i
+                    inx = inx + 1
+
+        # output is the probabilites for each time interval
+        preds = model.predict_proba(X_test)
+
+        i=0
+        # loop over all garages in DB and update with the new probabilites
+        for garage in queryset:
+            garage_probs_new = []
+            for garage_day_prob in garage.probability:
+                day_probs_new = []
+                for garage_interval_prob in garage_day_prob.probability:
+                    garage_interval_prob.probability = preds[i][1]
+                    i=i+1
+                    day_probs_new.append(garage_interval_prob)
+                garage_day_prob.probability = day_probs_new
+                garage_probs_new.append(garage_day_prob)
+            # overwrite old probabiliy list
+            garage.probability = garage_probs_new
+            
+            if garage and garage_probs_new:
+                garage.save()
+
+    # outputs probs to a file
+    def output_probs(self, model):
+        X_test = np.zeros((51744,3))
+        inx = 0
+        for i in range(77):
+            for j in range(7):
+                for k in range(96):
+                    X_test[inx][0] = k
+                    X_test[inx][1] = j
+                    X_test[inx][2] = i
+                    inx = inx + 1
+
+        preds = model.predict_proba(X_test)
+
+        with open("training_data/pred.txt", "w") as file:
+            np.savetxt(file, preds)
+                      
+
 
     # Creates /opt/capstone/training_data/tickets<date>.csv with relevent training data from current DB state
     def load_csv(self):
@@ -61,41 +117,55 @@ class Command(BaseCommand):
         today = date.today()
         training_set = open(('training_data/tickets_' + today.strftime("%m-%d-%Y") +'.csv'), 'w', newline='')
 
+        # the data we are training on
         writer = csv.writer(training_set)
         writer.writerow(['time','day_of_week', 'garage', 'ticketed'])
 
+        # gets all parks that do have a ticket
         parksTicketed = Park.objects.exclude(ticket = None).exclude(end = None)
 
         for park in parksTicketed:
             startTime = park.start
             endTime = park.end
+            # the int representation of a garage
             garage = park.garage.id
-            dateTimeTicketed = park.ticket.date
+            # the time the park recieved a ticket
+            dateTimeTicketed = park.ticket.date 
 
+            # gets 15 minute time interval offset
             startOffset = math.floor(((startTime.hour * 60) + startTime.minute)/15)
             endOffset = math.floor(((endTime.hour * 60) + endTime.minute)/15)
+            
+            # this is the 15 minute time interval in which the park recieved a ticket
             ticketOffset = math.floor(((dateTimeTicketed.hour * 60) + dateTimeTicketed.minute)/15)
 
+            # the int representation of a weekday
             dayCode = dateTimeTicketed.weekday()
 
+            # ticket the time interval of ticketing, otherwise create a non ticket event
             for i in range(startOffset, endOffset + 1):
                 if(i == ticketOffset): 
                     writer.writerow((i, dayCode, garage, int(WasTicketed.YES)))
                 else:
                     writer.writerow((i, dayCode, garage, int(WasTicketed.NO)))
 
+        # gets all parks that did not result in a ticket
         parksNotTicketed = Park.objects.filter(ticket = None).exclude(end = None)
 
         for park in parksNotTicketed:
             startTime = park.start
             endTime = park.end
+            # the int representation of a garage
             garage = park.garage.id
 
+            # gets 15 minute time interval offset
             startOffset = math.floor(((startTime.hour * 60) + startTime.minute)/15)
             endOffset = math.floor(((endTime.hour * 60) + endTime.minute)/15)
 
+            # the int representation of a weekday
             dayCode = dateTimeTicketed.weekday()
 
+            # there will always be not ticket events
             for i in range(startOffset, endOffset + 1):
                 writer.writerow((i, dayCode, garage, int(WasTicketed.NO)))
                 
