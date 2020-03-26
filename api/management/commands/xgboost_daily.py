@@ -36,83 +36,6 @@ class WasTicketed(IntEnum):
 class Command(BaseCommand):
     help = '*Create Help Text*'
 
-    def modelfit(self, alg, X, Y, useTrainCV=True, cv_folds=5, early_stopping_rounds=50):
-        if useTrainCV:
-            xgb_param = alg.get_xgb_params()
-            xgtrain = xgb.DMatrix(X, label=Y)
-            cvresult = xgb.cv(xgb_param, xgtrain, num_boost_round=alg.get_params()['n_estimators'], nfold=cv_folds,
-                metrics='auc', early_stopping_rounds=early_stopping_rounds, verbose_eval=False)
-            alg.set_params(n_estimators=cvresult.shape[0])
-        
-        #Fit the algorithm on the data
-        alg.fit(X, Y, eval_metric='auc')
-            
-        #Predict training set:
-        dtrain_predictions = alg.predict(X)
-        dtrain_predprob = alg.predict_proba(X)[:,1]
-            
-        #Print model report:
-        print("\nModel Report")
-        print("Accuracy : %.4g" % metrics.accuracy_score(Y, dtrain_predictions))
-        print("AUC Score (Train): %f" % metrics.roc_auc_score(Y, dtrain_predprob))
-
-    def tune_depth_weight(self, X, Y):
-        param_test1 = {
-            'max_depth':range(3,10,2),
-            'min_child_weight':range(1,6,2)
-        }
-
-        gsearch1 = GridSearchCV(estimator = XGBClassifier( learning_rate=0.1, n_estimators=140, max_depth=5,
-        min_child_weight=2, gamma=0, subsample=0.8, colsample_bytree=0.8,
-        objective= 'binary:logistic', nthread=4, scale_pos_weight=1,seed=27), 
-        param_grid = param_test1, scoring='roc_auc',n_jobs=4, cv=5)
-        gsearch1.fit(X,Y)
-        for i in ['mean_test_score', 'std_test_score', 'params']:
-            print(i," : ", gsearch1.cv_results_[i])
-
-        n1 = gsearch1.best_params_['max_depth']
-        n2 = gsearch1.best_params_['min_child_weight']
-        
-        param_test2 = {
-            'max_depth':[n1-1,n1,n1+1],
-            'min_child_weight':[n2-1,n2,n2+1]
-        }
-
-        gsearch2 = GridSearchCV(estimator = XGBClassifier( learning_rate=0.1, n_estimators=140, max_depth=5,
-        min_child_weight=2, gamma=0, subsample=0.8, colsample_bytree=0.8,
-        objective= 'binary:logistic', nthread=4, scale_pos_weight=1,seed=27), 
-        param_grid = param_test2, scoring='roc_auc',n_jobs=4, cv=5)
-        gsearch2.fit(X,Y)
-        for i in ['mean_test_score', 'std_test_score', 'params']:
-            print(i," : ", gsearch2.cv_results_[i])
-
-        print(gsearch2.best_params_, gsearch2.best_score_)
-    def tune_gamma(self, X, Y):
-        param_test3 = {
-            'gamma':[i/10.0 for i in range(0,5)]
-        }
-        gsearch3 = GridSearchCV(estimator = XGBClassifier( learning_rate =0.1, n_estimators=140, max_depth=10,
-        min_child_weight=0, gamma=0, subsample=0.8, colsample_bytree=0.8,
-        objective= 'binary:logistic', nthread=4, scale_pos_weight=1,seed=27), 
-        param_grid = param_test3, scoring='roc_auc',n_jobs=4, cv=5)
-        gsearch3.fit(X,Y)
-        for i in ['mean_test_score', 'std_test_score', 'params']:
-            print(i," : ", gsearch3.cv_results_[i])
-        print(gsearch3.best_params_, gsearch3.best_score_)
-    def tune_subsample_colsample(self, X, Y):
-        param_test4 = {
-            'subsample':[i/10.0 for i in range(6,10)],
-            'colsample_bytree':[i/10.0 for i in range(6,10)]
-        }
-        gsearch4 = GridSearchCV(estimator = XGBClassifier( learning_rate =0.1, n_estimators=177, max_depth=10,
-        min_child_weight=0, gamma=0.1, subsample=0.8, colsample_bytree=0.8,
-        objective= 'binary:logistic', nthread=4, scale_pos_weight=1,seed=27), 
-        param_grid = param_test4, scoring='roc_auc',n_jobs=4, cv=5)
-        gsearch4.fit(X,Y)
-        for i in ['mean_test_score', 'std_test_score', 'params']:
-            print(i," : ", gsearch4.cv_results_[i])
-        print(gsearch4.best_params_, gsearch4.best_score_)
-
     def handle(self, *args, **options):
         # lead today's training data
         self.load_csv()
@@ -125,24 +48,28 @@ class Command(BaseCommand):
         X = dataset[:,0:3]
         Y = dataset[:,3]
 
-        # fit model
+        # tune the xgboost parameters
+        depth_weight = self.tune_depth_weight(X,Y)
+        gamma = self.tune_gamma(X, Y)
+        subsample_colsample = self.tune_subsample_colsample(X,Y)
+
+        # init model with new parameters
         model = XGBClassifier(
-            learning_rate =0.01,
-            n_estimators=5000,
-            max_depth=10,
-            min_child_weight=0,
-            gamma=0.1,
-            subsample=0.6,
-            colsample_bytree=0.7,
-            objective= 'binary:logistic',
-            nthread=4,
-            scale_pos_weight=1,
-            seed=27
+            learning_rate = 0.01,
+            n_estimators = 5000,
+            max_depth = depth_weight[0],
+            min_child_weight = depth_weight[1],
+            gamma = gamma,
+            subsample = subsample_colsample[0],
+            colsample_bytree = subsample_colsample[1],
+            objective = 'binary:logistic',
+            nthread = 4,
+            scale_pos_weight = 1,
+            seed = 27
         )
 
+        # fit model
         model.fit(X, Y)
-
-        #self.modelfit( model, X, Y)
 
         # use updated model to write new probabilites for each time interval to the DB
         self.write_probabilities_to_database(model)
@@ -271,4 +198,81 @@ class Command(BaseCommand):
             # there will always be not ticket events
             for i in range(startOffset, endOffset + 1):
                 writer.writerow((i, dayCode, garage, int(WasTicketed.NO)))
+
+    # evaluates model accuracy
+    def modelfit(self, alg, X, Y, useTrainCV=True, cv_folds=5, early_stopping_rounds=50):
+        if useTrainCV:
+            xgb_param = alg.get_xgb_params()
+            xgtrain = xgb.DMatrix(X, label=Y)
+            cvresult = xgb.cv(xgb_param, xgtrain, num_boost_round=alg.get_params()['n_estimators'], nfold=cv_folds,
+                metrics='auc', early_stopping_rounds=early_stopping_rounds, verbose_eval=False)
+            alg.set_params(n_estimators=cvresult.shape[0])
+        
+        #Fit the algorithm on the data
+        alg.fit(X, Y, eval_metric='auc')
+            
+        #Predict training set:
+        dtrain_predictions = alg.predict(X)
+        dtrain_predprob = alg.predict_proba(X)[:,1]
+            
+        #Print model report:
+        print("\nModel Report")
+        print("Accuracy : %.4g" % metrics.accuracy_score(Y, dtrain_predictions))
+        print("AUC Score (Train): %f" % metrics.roc_auc_score(Y, dtrain_predprob))
+
+    # tunes max_depth and min_child_weight parameters
+    def tune_depth_weight(self, X, Y):
+        param_test1 = {
+            'max_depth':range(3,10,2),
+            'min_child_weight':range(1,6,2)
+        }
+
+        gsearch1 = GridSearchCV(estimator = XGBClassifier( learning_rate=0.1, n_estimators=140, max_depth=5,
+        min_child_weight=2, gamma=0, subsample=0.8, colsample_bytree=0.8,
+        objective= 'binary:logistic', nthread=4, scale_pos_weight=1,seed=27), 
+        param_grid = param_test1, scoring='roc_auc',n_jobs=4, cv=5)
+        gsearch1.fit(X,Y)
+
+        n1 = gsearch1.best_params_['max_depth']
+        n2 = gsearch1.best_params_['min_child_weight']
+        
+        param_test2 = {
+            'max_depth':[n1-1,n1,n1+1],
+            'min_child_weight':[n2-1,n2,n2+1]
+        }
+
+        gsearch2 = GridSearchCV(estimator = XGBClassifier( learning_rate=0.1, n_estimators=140, max_depth=5,
+        min_child_weight=2, gamma=0, subsample=0.8, colsample_bytree=0.8,
+        objective= 'binary:logistic', nthread=4, scale_pos_weight=1,seed=27), 
+        param_grid = param_test2, scoring='roc_auc',n_jobs=4, cv=5)
+        gsearch2.fit(X,Y)
+
+        return (gsearch2.best_params_['max_depth'], gsearch2.best_params_['min_child_weight'])
+    
+    # tunes gamma parameter
+    def tune_gamma(self, X, Y):
+        param_test3 = {
+            'gamma':[i/10.0 for i in range(0,5)]
+        }
+        gsearch3 = GridSearchCV(estimator = XGBClassifier( learning_rate =0.1, n_estimators=140, max_depth=10,
+        min_child_weight=0, gamma=0, subsample=0.8, colsample_bytree=0.8,
+        objective= 'binary:logistic', nthread=4, scale_pos_weight=1,seed=27), 
+        param_grid = param_test3, scoring='roc_auc',n_jobs=4, cv=5)
+        gsearch3.fit(X,Y)
+
+        return gsearch3.best_params_['gamma']
+    
+    # tunes subsample and colsample_bytree parameters
+    def tune_subsample_colsample(self, X, Y):
+        param_test4 = {
+            'subsample':[i/10.0 for i in range(6,10)],
+            'colsample_bytree':[i/10.0 for i in range(6,10)]
+        }
+        gsearch4 = GridSearchCV(estimator = XGBClassifier( learning_rate =0.1, n_estimators=177, max_depth=10,
+        min_child_weight=0, gamma=0.1, subsample=0.8, colsample_bytree=0.8,
+        objective= 'binary:logistic', nthread=4, scale_pos_weight=1,seed=27), 
+        param_grid = param_test4, scoring='roc_auc',n_jobs=4, cv=5)
+        gsearch4.fit(X,Y)
+
+        return (gsearch4.best_params_['subsample'], gsearch4.best_params_['colsample_bytree'])
                 
