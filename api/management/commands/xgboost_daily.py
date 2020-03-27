@@ -56,7 +56,7 @@ class Command(BaseCommand):
         # init model with new parameters
         model = XGBClassifier(
             learning_rate = 0.01,
-            n_estimators = 5000,
+            n_estimators = 3000,
             max_depth = depth_weight[0],
             min_child_weight = depth_weight[1],
             gamma = gamma,
