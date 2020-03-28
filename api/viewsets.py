@@ -61,9 +61,10 @@ class ParkViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['post'])
     def create_user_park(self, request):
-        request.data['user'] = request.user.pk
+        data = request.data
+        data['user'] = request.user.pk
 
-        serializer = self.get_serializer(data=request.data)
+        serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception=True)
 
         park = self.create(serializer.validated_data)
