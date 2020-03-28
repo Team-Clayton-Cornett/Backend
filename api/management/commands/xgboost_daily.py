@@ -152,7 +152,7 @@ class Command(BaseCommand):
         writer.writerow(['time','day_of_week', 'garage', 'ticketed'])
 
         # gets all parks that do have a ticket
-        parksTicketed = Park.objects.exclude(ticket = None).exclude(end = None)
+        parksTicketed = Park.objects.exclude(ticket = None).exclude(end = None).iterator()
 
         for park in parksTicketed:
             startTime = park.start
@@ -180,7 +180,7 @@ class Command(BaseCommand):
                     writer.writerow((i, dayCode, garage, int(WasTicketed.NO)))
 
         # gets all parks that did not result in a ticket
-        parksNotTicketed = Park.objects.filter(ticket = None).exclude(end = None)
+        parksNotTicketed = Park.objects.filter(ticket = None).exclude(end = None).iterator()
 
         for park in parksNotTicketed:
             startTime = park.start
@@ -198,6 +198,8 @@ class Command(BaseCommand):
             # there will always be not ticket events
             for i in range(startOffset, endOffset + 1):
                 writer.writerow((i, dayCode, garage, int(WasTicketed.NO)))
+
+        print("you made it out")
 
     # evaluates model accuracy
     def modelfit(self, alg, X, Y, useTrainCV=True, cv_folds=5, early_stopping_rounds=50):
