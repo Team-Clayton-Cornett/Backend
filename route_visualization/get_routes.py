@@ -71,21 +71,28 @@ def get_matrices(groupNum, clnt, coords):
 
 # cost function to compare distances for optimal routes
 def get_distance_g1(from_id, to_id):
+    from_id = from_id -1
+    to_id = to_id -1
     return int(garage_matrix_g1['durations'][from_id][to_id])
 
 def get_distance_g2(from_id, to_id):
+    from_id = from_id -1
+    to_id = to_id -1
     return int(garage_matrix_g2['durations'][from_id][to_id])
 
 def get_distance_g3(from_id, to_id):
+    from_id = from_id -1
+    to_id = to_id -1
     return int(garage_matrix_g3['durations'][from_id][to_id])
 
 # using ortools, determine the cost and find the optimal coordinate (parking loccation) order for a route
 def get_path(garage_matrix, coords, matrixNum):
-    tsp_size = len(coords) -1
+    tsp_size = len(coords)
     num_routes = 1
     start = 0
 
     optimal_coords = []
+
 
     if tsp_size > 0:
         manager = pywrapcp.RoutingIndexManager(tsp_size, num_routes, start)
@@ -107,9 +114,8 @@ def get_path(garage_matrix, coords, matrixNum):
         if assignment:
             index = routing.Start(start)
             for node in range(routing.nodes()):
-                optimal_coords.append(coords[manager.IndexToNode(index)])
+                optimal_coords.append(coords[manager.IndexToNode(index)-1])
                 index = assignment.Value(routing.NextVar(index))
-            optimal_coords.append(coords[manager.IndexToNode(index)])
 
     return optimal_coords
 
@@ -149,6 +155,7 @@ def get_path_mapped(optimal_coords, m, clnt, groupNum):
 
 # save the route and duration between each step to a json file for data generation later
 def save_routes(groupNum, optimal_coords):
+
     with open('route_visualization/garage_coordinates_3_groups.json') as all_coords:
         with open('route_visualization/FullRoutes/full_route_g'+str(groupNum)+'.json') as full_route:
             garages = json.load(all_coords)
@@ -160,7 +167,9 @@ def save_routes(groupNum, optimal_coords):
 
             for coordPair in optimal_coords:
                 for garage in garages:
-                    segment = full_enforce_route['features'][0]['properties']['segments'][inx]
+                    
+                    if(inx != -1):
+                        segment = full_enforce_route['features'][0]['properties']['segments'][inx]
                     if(garage['latitude'] == coordPair[1] and garage['longitude'] == coordPair[0]):
                         if(inx == -1):
                             garageTimePair = (garage['name'], 0)

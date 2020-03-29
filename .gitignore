@@ -123,3 +123,6 @@ route_visualization/api_key.txt
 
 # Cron Logs
 cron_logs/*
+
+# probability validation annalysis
+validation_images/*
