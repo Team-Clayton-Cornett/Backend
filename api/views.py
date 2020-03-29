@@ -63,7 +63,7 @@ def create_random_parks(n):
 
 # start it off!
 def create_parks_v2():
-    create_parks_updated(park_percent_thresh=50, park_ticket_percent_thresh=95, park_max_time=240, park_min_time=10, parks_per_iteration=1)
+    create_parks_updated(park_percent_thresh=35, park_ticket_percent_thresh=98, park_max_time=240, park_min_time=10, parks_per_iteration=1)
 
 # second attempt at creating meaningful park data that contains trends
 def create_parks_updated(park_percent_thresh, park_ticket_percent_thresh, park_max_time, park_min_time, parks_per_iteration):
@@ -87,13 +87,15 @@ def create_parks_updated(park_percent_thresh, park_ticket_percent_thresh, park_m
     for route in routes:
         patrol_times.append(get_patrol_times_list(patrol_time_start=date, patrol_time_end=(date+datetime.timedelta(minutes=660)), patrol_lot_time_min=5, patrol_lot_time_max=15, patrol_route=route))
 
-    # add previous 30 days to the queue for ticket generation
+    # add previous 15 days to the queue for ticket generation
     dates = []
-    for i in range(1,30):
+    for i in range(1,15):
         dates.append(date - datetime.timedelta(days=i))
 
-    # iterate over the past 30 days
+    # iterate over the past 15 days
     for date in dates:
+        # random start time
+        date = date + datetime.timedelta(randrange(10, 40, 1))
         # iterate over each 5 minute time interval in the enforcement hours (7:00am - 6:00pm)
         for current_time_offset in range(0, 660, 5):
             # how many parks pre time interval will be attempted in each garage
@@ -112,31 +114,34 @@ def create_parks_updated(park_percent_thresh, park_ticket_percent_thresh, park_m
                     if(park_prob > park_percent_thresh):
                         park_made = False
                         # for each route's patrol times
-                        for patrol_time in patrol_times:
-                            # for each lot's patrol time
-                            for lot_visited in patrol_time:
-                                # if the lot matches the garage name
-                                if lot_visited[0] == garage.name:
-                                    # if the park range overlaps the ticketing range, give a ticket
-                                    
-                                    lot_visited_time1 = lot_visited[1].replace(year=park_start_time.year, month=park_start_time.month, day=park_start_time.day)
-                                    lot_visited_time2 = lot_visited[2].replace(year=park_start_time.year, month=park_start_time.month, day=park_start_time.day)
+                        
+                        # only give out tickets on weekdays
+                        if date.weekday() < 5:
+                            for patrol_time in patrol_times:
+                                # for each lot's patrol time
+                                for lot_visited in patrol_time:
+                                    # if the lot matches the garage name
+                                    if lot_visited[0] == garage.name and park_made == False:
+                                        # if the park range overlaps the ticketing range, give a ticket
+                                        
+                                        lot_visited_time1 = lot_visited[1].replace(year=park_start_time.year, month=park_start_time.month, day=park_start_time.day)
+                                        lot_visited_time2 = lot_visited[2].replace(year=park_start_time.year, month=park_start_time.month, day=park_start_time.day)
 
-                                    if park_start_time < lot_visited_time1 and park_end_time > lot_visited_time1:
-                                        # make sure that the ticket_prob is under the ticketing threshold
-                                        ticket_prob = random() * 100
-                                        if(ticket_prob < park_ticket_percent_thresh):
-                                            create_park(start=park_start_time, end=park_end_time, ticket=Ticket(date=random_date(lot_visited_time1 ,park_end_time)), garage=garage, user=user)
-                                            park_made = True
-                                    elif lot_visited_time1 < park_start_time and lot_visited_time2 > park_start_time:
-                                        ticket_prob = random() * 100
-                                        if(ticket_prob < park_ticket_percent_thresh):
-                                            create_park(start=park_start_time, end=park_end_time, ticket=Ticket(date=random_date(park_start_time, lot_visited_time2)), garage=garage, user=user)
-                                            park_made = True
+                                        if park_start_time < lot_visited_time1 and park_end_time > lot_visited_time1:
+                                            # make sure that the ticket_prob is under the ticketing threshold
+                                            ticket_prob = random() * 100
+                                            if(ticket_prob < park_ticket_percent_thresh):
+                                                create_park(start=park_start_time, end=park_end_time, ticket=Ticket(date=random_date(lot_visited_time1 ,park_end_time)), garage=garage, user=user)
+                                                park_made = True
+                                        elif lot_visited_time1 < park_start_time and lot_visited_time2 > park_start_time:
+                                            ticket_prob = random() * 100
+                                            if(ticket_prob < park_ticket_percent_thresh):
+                                                create_park(start=park_start_time, end=park_end_time, ticket=Ticket(date=random_date(park_start_time, lot_visited_time2)), garage=garage, user=user)
+                                                park_made = True
                                     
-                        if park_made == False:
-                            create_park(start=park_start_time, end=park_end_time, ticket=None, garage=garage, user=user)
-                        park_made = False
+                            if park_made == False:
+                                create_park(start=park_start_time, end=park_end_time, ticket=None, garage=garage, user=user)
+                            park_made = False
 
 def get_patrol_times_list(patrol_time_start, patrol_time_end ,patrol_lot_time_min, patrol_lot_time_max, patrol_route):
     # current 'time' in the simulation for route patrols (minutes)
