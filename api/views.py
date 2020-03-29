@@ -94,7 +94,7 @@ def create_parks_updated(park_percent_thresh, park_ticket_percent_thresh, park_m
 
     # iterate over the past 15 days
     for date in dates:
-        # random start time
+        # random start time within 10-40 minutes of 7:00 am
         date = date + datetime.timedelta(randrange(10, 40, 1))
         # iterate over each 5 minute time interval in the enforcement hours (7:00am - 6:00pm)
         for current_time_offset in range(0, 660, 5):
@@ -112,11 +112,10 @@ def create_parks_updated(park_percent_thresh, park_ticket_percent_thresh, park_m
                     # decide wether or not to generate a park
                     park_prob = random() * 100
                     if(park_prob > park_percent_thresh):
-                        park_made = False
-                        # for each route's patrol times
-                        
+                        park_made = False                        
                         # only give out tickets on weekdays
                         if date.weekday() < 5:
+                            # for each route's patrol times
                             for patrol_time in patrol_times:
                                 # for each lot's patrol time
                                 for lot_visited in patrol_time:
@@ -140,7 +139,10 @@ def create_parks_updated(park_percent_thresh, park_ticket_percent_thresh, park_m
                                                 park_made = True
                                     
                             if park_made == False:
-                                create_park(start=park_start_time, end=park_end_time, ticket=None, garage=garage, user=user)
+                                # test it again for the threshold, too many parks being created
+                                park_prob = random() * 100
+                                if(park_prob > park_percent_thresh):
+                                    create_park(start=park_start_time, end=park_end_time, ticket=None, garage=garage, user=user)
                             park_made = False
 
 def get_patrol_times_list(patrol_time_start, patrol_time_end ,patrol_lot_time_min, patrol_lot_time_max, patrol_route):
