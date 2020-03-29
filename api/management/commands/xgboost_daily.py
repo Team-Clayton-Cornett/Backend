@@ -55,7 +55,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         # load today's training data
-        self.load_csv()
+        #self.create_csv()
 
         # load today's data
         today = date.today()
@@ -88,10 +88,21 @@ class Command(BaseCommand):
         # fit model
         model.fit(X, Y)
 
-        #self.modelfit(model, X, Y, useTrainCV=True, cv_folds=5, early_stopping_rounds=50)
+        config = model.save_config()
+        
+        # save model params to file for loading later (TODO)
+        today = date.today()
+        filename = 'xgboost_model_params/' + today.strftime("%m-%d-%Y") + '.json'
+        os.makedirs(os.path.dirname(filename), exist_ok=True)
+
+        with open(filename, 'w') as outfile:
+            json.dump(config, outfile)
+
+        
+        self.modelfit(model, X, Y, useTrainCV=True, cv_folds=5, early_stopping_rounds=50)
 
         # use updated model to write new probabilites for each time interval to the DB
-        self.write_probabilities_to_database(model)
+        #self.write_probabilities_to_database(model)
 
         self.stdout.write('The xgboost_daily task was ran at ' + str(today))
 
@@ -169,7 +180,7 @@ class Command(BaseCommand):
 
 
     # Creates /opt/capstone/training_data/tickets<date>.csv with relevent training data from current DB state
-    def load_csv(self):
+    def create_csv(self):
         # A daily copy is kept, named by day
         today = date.today()
 
@@ -204,7 +215,7 @@ class Command(BaseCommand):
             ticketOffset = math.floor(((dateTimeTicketed.hour * 60) + dateTimeTicketed.minute)/15)
 
             # the int representation of a weekday
-            dayCode = dateTimeTicketed.weekday()
+            dayCode = ((dateTimeTicketed.weekday() + 1) % 7)
 
             # ticket the time interval of ticketing, otherwise create a non ticket event
             for i in range(startOffset, endOffset + 1):
@@ -234,7 +245,7 @@ class Command(BaseCommand):
             endOffset = math.floor(((endTime.hour * 60) + endTime.minute)/15)
 
             # the int representation of a weekday
-            dayCode = dateTimeTicketed.weekday()
+            dayCode = ((startTime.weekday() + 1) % 7)
 
             # there will always be not ticket events
             for i in range(startOffset, endOffset + 1):

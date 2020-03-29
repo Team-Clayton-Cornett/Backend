@@ -94,14 +94,14 @@ def create_parks_updated(park_percent_thresh, park_ticket_percent_thresh, park_m
 
     # iterate over the past 15 days
     for date in dates:
-        # random start time within 10-40 minutes of 7:00 am
-        date = date + datetime.timedelta(randrange(10, 40, 1))
+        # random start time within 0-45 minutes of 7:00 am
+        date_begin = date + datetime.timedelta(minutes=randrange(0, 45, 1))
         # iterate over each 5 minute time interval in the enforcement hours (7:00am - 6:00pm)
         for current_time_offset in range(0, 660, 5):
             # how many parks pre time interval will be attempted in each garage
             for i in range(parks_per_iteration):
                 # set the start time of the park
-                park_start_time = date + datetime.timedelta(minutes=current_time_offset)
+                park_start_time = date_begin + datetime.timedelta(minutes=current_time_offset)
                 # set the length of the park
                 park_length = randrange(park_min_time, park_max_time, 1)
                 # set when the park will end
@@ -327,9 +327,9 @@ def load_routes(filename):
 
 # returns a random date between two times
 def random_date(start, end):
-    return start + datetime.timedelta(
-        seconds=randint(0, int((end - start).total_seconds())),
-    )
+    rand_date = start + datetime.timedelta(seconds=randint(0, int((end - start).total_seconds())))
+
+    return rand_date
 
 
 """
