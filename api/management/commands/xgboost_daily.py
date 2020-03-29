@@ -180,7 +180,7 @@ class Command(BaseCommand):
         training_set = open((filename), 'w', newline='')
 
         # the data we are training on
-        writer = csv.writer(training_set, )
+        writer = csv.writer(training_set)
         writer.writerow(['time','day_of_week', 'garage', 'ticketed'])
 
         # gets all parks that do have a ticket
