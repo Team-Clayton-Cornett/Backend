@@ -1,5 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
+import os
+import time
 
 from django.core.management.base import BaseCommand, CommandError
 from datetime import date
@@ -12,46 +14,50 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         garages = Garage.objects.all()
 
-        probabilities = np.zeros((77, 7, 96))
-        garagesList = []
+        for garage in garages:        
+            for day_prob in garage.probability:
+                Yprob = np.zeros((96))
+                i = 0
+                for prob_interval in day_prob.probability:
+                    Yprob[i] = prob_interval.probability * 100
+                    i=i+1
 
-        i=0
-        j=0
-        k=0
-        for garage in garages:
-            garagesList.append(garage.name)
-            for dayprob in garage.probability:
-                for prob in dayprob.probability:
-                    probabilities[i][j][k] = prob.probability
-                    k=k+1
-                j=j+1
-                k=0
+                Ycount = np.zeros((96))
 
-            i=i+1
-            j=0
-            k=0
-        
-        parks = Park.objects.all()
-        today = date.today()
-        dataset = np.loadtxt('training_data/tickets_' + today.strftime("%m-%d-%Y") +'.csv', delimiter=",", usecols=range(4), skiprows=1)
-        ticketsGiven = np.zeros((77, 7, 96), dtype=int)
-        for row in dataset:
-            if row[3] == 1:
-                ticketsGiven[int(row[2])-1][int(row[1])][int(row[0])] = ticketsGiven[int(row[2])-1][int(row[1])][int(row[0])] + 1
+                today = date.today()
+                dataset = np.loadtxt('training_data/tickets_' + today.strftime("%m-%d-%Y") +'.csv', delimiter=",", usecols=range(4), skiprows=1)
+                
+                for row in dataset:
+                    if row[3] == 1 and row[2] == garage.id and row[1] == self.convertDay(day_prob.day_of_week):
+                        Ycount[int(row[0])] = Ycount[int(row[0])] + 1
+                
+                X = np.arange(96)
 
-        X = np.arange(96)
-        Y = np.zeros((96))
-        Yprob = np.zeros((96), dtype=float)
-
-        p = 0
-        for i in range(1):
-            for j in range(1):
-                for k in range (96):
-                    Y[k] = ticketsGiven[j][i][k]    
-                    Yprob[k] = probabilities[j][i][k] * 100             
+                plt.bar(X, Ycount)
                 plt.plot(X, Yprob, '-r')
-                plt.bar(X, Y)
-            plt.ylabel('probability')
-            plt.xlabel('time interval')
-            plt.savefig("day" + str(i) +".png")
-        
+                plt.title(garage.name + " " + day_prob.day_of_week)
+
+                filename = 'validation_images/'+day_prob.day_of_week+'/' + garage.name + '.png'
+                os.makedirs(os.path.dirname(filename), exist_ok=True)
+                plt.savefig(filename)
+                plt.clf()
+                plt.close()
+
+                time.sleep(0.01)
+
+    def convertDay(sef, day_of_week):
+        if day_of_week == DAYS_OF_WEEK[0][0] or day_of_week == DAYS_OF_WEEK[0][1]:
+            return 6
+        elif day_of_week == DAYS_OF_WEEK[1][0] or day_of_week == DAYS_OF_WEEK[1][1]:
+            return 0
+        elif day_of_week == DAYS_OF_WEEK[2][0] or day_of_week == DAYS_OF_WEEK[2][1]:
+            return 1
+        elif day_of_week == DAYS_OF_WEEK[3][0] or day_of_week == DAYS_OF_WEEK[3][1]:
+            return 2
+        elif day_of_week == DAYS_OF_WEEK[4][0] or day_of_week == DAYS_OF_WEEK[4][1]:
+            return 3
+        elif day_of_week == DAYS_OF_WEEK[5][0] or day_of_week == DAYS_OF_WEEK[5][1]:
+            return 4
+        elif day_of_week == DAYS_OF_WEEK[6][0] or day_of_week == DAYS_OF_WEEK[6][1]:
+            return 5
+
