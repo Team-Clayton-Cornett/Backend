@@ -34,12 +34,28 @@ class WasTicketed(IntEnum):
 # Example Crontab command (everyday at 1:00 AM):
 # 0 1  * * * cd <project root> &&  nice -n 19 <project root>/venv/bin/python <project root>/manage.py xgboost_daily >> <cron output location> 2>&1
 
+# old model params before auto-tuning:
+#  model = XGBClassifier(
+#             learning_rate = 0.1,
+#             n_estimators = 1000,
+#             scale_pos_weight=3,
+#             max_depth = 5,
+#             min_child_weight = 1,
+#             gamma = 0.3,
+#             subsample = 0.8,
+#             colsample_bytree = 0.8,
+#             objective = 'binary:logistic',
+#             nthread = 4,
+#             #scale_pos_weight = 1,
+#             seed = 27
+#         )
+
 class Command(BaseCommand):
     help = '*Create Help Text*'
 
     def handle(self, *args, **options):
-        # lead today's training data
-        #self.load_csv()
+        # load today's training data
+        self.load_csv()
 
         # load today's data
         today = date.today()
@@ -50,33 +66,32 @@ class Command(BaseCommand):
         Y = dataset[:,3]
 
         # tune the xgboost parameters
-        #depth_weight = self.tune_depth_weight(X,Y)
-        #gamma = self.tune_gamma(X, Y)
-        #subsample_colsample = self.tune_subsample_colsample(X,Y)
+        depth_weight = self.tune_depth_weight(X,Y)
+        gamma = self.tune_gamma(X, Y)
+        subsample_colsample = self.tune_subsample_colsample(X,Y)
 
         # init model with new parameters
         model = XGBClassifier(
-            learning_rate = 0.1,
-            n_estimators = 1000,
+            learning_rate = 0.01,
+            n_estimators = 3000,
             scale_pos_weight=3,
-            max_depth = 5,
-            min_child_weight = 1,
-            gamma = 0.3,
-            subsample = 0.8,
-            colsample_bytree = 0.8,
+            max_depth = depth_weight[0],
+            min_child_weight = depth_weight[1],
+            gamma = gamma,
+            subsample = subsample_colsample[0],
+            colsample_bytree = subsample_colsample[1],
             objective = 'binary:logistic',
             nthread = 4,
-            #scale_pos_weight = 1,
             seed = 27
         )
 
         # fit model
-        #model.fit(X, Y)
+        model.fit(X, Y)
 
-        self.modelfit(model, X, Y, useTrainCV=True, cv_folds=5, early_stopping_rounds=50)
+        #self.modelfit(model, X, Y, useTrainCV=True, cv_folds=5, early_stopping_rounds=50)
 
         # use updated model to write new probabilites for each time interval to the DB
-        #self.write_probabilities_to_database(model)
+        self.write_probabilities_to_database(model)
 
         self.stdout.write('The xgboost_daily task was ran at ' + str(today))
 
@@ -262,7 +277,7 @@ class Command(BaseCommand):
 
         gsearch1 = GridSearchCV(estimator = XGBClassifier( learning_rate=0.1, n_estimators=140, max_depth=5,
         min_child_weight=2, gamma=0, subsample=0.8, colsample_bytree=0.8,
-        objective= 'binary:logistic', nthread=4, scale_pos_weight=1,seed=27), 
+        objective= 'binary:logistic', nthread=4, scale_pos_weight=3,seed=27), 
         param_grid = param_test1, scoring='roc_auc',n_jobs=4, cv=5)
         gsearch1.fit(X,Y)
 
@@ -276,7 +291,7 @@ class Command(BaseCommand):
 
         gsearch2 = GridSearchCV(estimator = XGBClassifier( learning_rate=0.1, n_estimators=140, max_depth=5,
         min_child_weight=2, gamma=0, subsample=0.8, colsample_bytree=0.8,
-        objective= 'binary:logistic', nthread=4, scale_pos_weight=1,seed=27), 
+        objective= 'binary:logistic', nthread=4, scale_pos_weight=3,seed=27), 
         param_grid = param_test2, scoring='roc_auc',n_jobs=4, cv=5)
         gsearch2.fit(X,Y)
 
@@ -289,7 +304,7 @@ class Command(BaseCommand):
         }
         gsearch3 = GridSearchCV(estimator = XGBClassifier( learning_rate =0.1, n_estimators=140, max_depth=10,
         min_child_weight=0, gamma=0, subsample=0.8, colsample_bytree=0.8,
-        objective= 'binary:logistic', nthread=4, scale_pos_weight=1,seed=27), 
+        objective= 'binary:logistic', nthread=4, scale_pos_weight=3,seed=27), 
         param_grid = param_test3, scoring='roc_auc',n_jobs=4, cv=5)
         gsearch3.fit(X,Y)
 
