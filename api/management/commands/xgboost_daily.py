@@ -3,6 +3,7 @@ import math
 import json
 import numpy as np
 import os
+import time
 
 from django.core.management.base import BaseCommand, CommandError
 from xgboost import XGBClassifier
@@ -31,14 +32,14 @@ class WasTicketed(IntEnum):
 
 
 # Example Crontab command (everyday at 1:00 AM):
-# 0 1  * * * cd <project root> &&  <project root>/venv/bin/python <project root>/manage.py xgboost_daily >> <cron output location> 2>&1
+# 0 1  * * * cd <project root> &&  nice -n 19 <project root>/venv/bin/python <project root>/manage.py xgboost_daily >> <cron output location> 2>&1
 
 class Command(BaseCommand):
     help = '*Create Help Text*'
 
     def handle(self, *args, **options):
         # lead today's training data
-        self.load_csv()
+        #self.load_csv()
 
         # load today's data
         today = date.today()
@@ -49,30 +50,33 @@ class Command(BaseCommand):
         Y = dataset[:,3]
 
         # tune the xgboost parameters
-        depth_weight = self.tune_depth_weight(X,Y)
-        gamma = self.tune_gamma(X, Y)
-        subsample_colsample = self.tune_subsample_colsample(X,Y)
+        #depth_weight = self.tune_depth_weight(X,Y)
+        #gamma = self.tune_gamma(X, Y)
+        #subsample_colsample = self.tune_subsample_colsample(X,Y)
 
         # init model with new parameters
         model = XGBClassifier(
-            learning_rate = 0.01,
-            n_estimators = 3000,
-            max_depth = depth_weight[0],
-            min_child_weight = depth_weight[1],
-            gamma = gamma,
-            subsample = subsample_colsample[0],
-            colsample_bytree = subsample_colsample[1],
+            learning_rate = 0.1,
+            n_estimators = 1000,
+            scale_pos_weight=3,
+            max_depth = 5,
+            min_child_weight = 1,
+            gamma = 0.3,
+            subsample = 0.8,
+            colsample_bytree = 0.8,
             objective = 'binary:logistic',
             nthread = 4,
-            scale_pos_weight = 1,
+            #scale_pos_weight = 1,
             seed = 27
         )
 
         # fit model
-        model.fit(X, Y)
+        #model.fit(X, Y)
+
+        self.modelfit(model, X, Y, useTrainCV=True, cv_folds=5, early_stopping_rounds=50)
 
         # use updated model to write new probabilites for each time interval to the DB
-        self.write_probabilities_to_database(model)
+        #self.write_probabilities_to_database(model)
 
         self.stdout.write('The xgboost_daily task was ran at ' + str(today))
 
@@ -93,21 +97,34 @@ class Command(BaseCommand):
                     # day of week
                     X_test[inx][1] = j
                     # garage
-                    X_test[inx][2] = i
+                    X_test[inx][2] = i + 1
                     inx = inx + 1
 
         # output is the probabilites for each time interval
         preds = model.predict_proba(X_test)
 
         i=0
+        weekend = False
         # loop over all garages in DB and update with the new probabilites
         for garage in queryset:
             garage_probs_new = []
             for garage_day_prob in garage.probability:
+                if garage_day_prob.day_of_week == DAYS_OF_WEEK[0][0] or garage_day_prob.day_of_week == DAYS_OF_WEEK[6][0]:
+                    weekend = True
+                else:
+                    weekend = False
+
                 day_probs_new = []
+                j=0
                 for garage_interval_prob in garage_day_prob.probability:
-                    garage_interval_prob.probability = preds[i][1]
+                    # time < 7:00am or time > 6:00pm
+                    if j < 28 or j > 72 or weekend == True:
+                        garage_interval_prob.probability = 0.01
+                    else:
+                        garage_interval_prob.probability = preds[i][1]
                     i=i+1
+                    j=j+1
+
                     day_probs_new.append(garage_interval_prob)
                 garage_day_prob.probability = day_probs_new
                 garage_probs_new.append(garage_day_prob)
@@ -148,11 +165,13 @@ class Command(BaseCommand):
         training_set = open((filename), 'w', newline='')
 
         # the data we are training on
-        writer = csv.writer(training_set)
+        writer = csv.writer(training_set, )
         writer.writerow(['time','day_of_week', 'garage', 'ticketed'])
 
         # gets all parks that do have a ticket
         parksTicketed = Park.objects.exclude(ticket = None).exclude(end = None).iterator()
+
+        write_queue = []
 
         for park in parksTicketed:
             startTime = park.start
@@ -175,12 +194,19 @@ class Command(BaseCommand):
             # ticket the time interval of ticketing, otherwise create a non ticket event
             for i in range(startOffset, endOffset + 1):
                 if(i == ticketOffset): 
-                    writer.writerow((i, dayCode, garage, int(WasTicketed.YES)))
+                    write_queue.append((i, dayCode, garage, int(WasTicketed.YES)))
                 else:
-                    writer.writerow((i, dayCode, garage, int(WasTicketed.NO)))
+                    write_queue.append((i, dayCode, garage, int(WasTicketed.NO)))
+
+            if len(write_queue) > 100:
+                writer.writerows(write_queue)  
+                write_queue.clear()
+                time.sleep(0.01)
 
         # gets all parks that did not result in a ticket
         parksNotTicketed = Park.objects.filter(ticket = None).exclude(end = None).iterator()
+
+        write_queue.clear()
 
         for park in parksNotTicketed:
             startTime = park.start
@@ -197,9 +223,14 @@ class Command(BaseCommand):
 
             # there will always be not ticket events
             for i in range(startOffset, endOffset + 1):
-                writer.writerow((i, dayCode, garage, int(WasTicketed.NO)))
+                write_queue.append((i, dayCode, garage, int(WasTicketed.NO)))
+            
+            if len(write_queue) > 100:
+                writer.writerows(write_queue)  
+                write_queue.clear()
+                time.sleep(0.01)
 
-        print("you made it out")
+        training_set.close()
 
     # evaluates model accuracy
     def modelfit(self, alg, X, Y, useTrainCV=True, cv_folds=5, early_stopping_rounds=50):
