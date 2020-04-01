@@ -4,6 +4,9 @@ import json
 import numpy as np
 import os
 import time
+import pickle
+import pandas as pd
+import xgboost as xgb
 
 from django.core.management.base import BaseCommand, CommandError
 from xgboost import XGBClassifier
@@ -11,12 +14,8 @@ from datetime import date
 from enum import IntEnum 
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
-
-
-import pandas as pd
-import xgboost as xgb
-from sklearn import metrics   #Additional scklearn functions
-from sklearn.model_selection import GridSearchCV   #Perforing grid search
+from sklearn import metrics
+from sklearn.model_selection import GridSearchCV
 
 # local models
 from api.models import Garage, Probability, DayProbability, DAYS_OF_WEEK, Ticket, Park
@@ -55,12 +54,12 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         # load today's training data
-        #self.create_csv()
+        self.create_csv()
 
         # load today's data
         today = date.today()
         dataset = np.loadtxt('training_data/tickets_' + today.strftime("%m-%d-%Y") +'.csv', delimiter=",", usecols=range(4), skiprows=1)
-        
+
         # split data into X and y
         X = dataset[:,0:3]
         Y = dataset[:,3]
@@ -88,21 +87,19 @@ class Command(BaseCommand):
         # fit model
         model.fit(X, Y)
 
-        config = model.save_config()
-        
+        # evaluate model performance
+        #self.modelfit(model, X, Y, useTrainCV=True, cv_folds=5, early_stopping_rounds=50)
+
         # save model params to file for loading later (TODO)
         today = date.today()
-        filename = 'xgboost_model_params/' + today.strftime("%m-%d-%Y") + '.json'
+        filename = 'xgboost_models/' + today.strftime("%m-%d-%Y") + '.dat'
         os.makedirs(os.path.dirname(filename), exist_ok=True)
 
-        with open(filename, 'w') as outfile:
-            json.dump(config, outfile)
-
-        
-        self.modelfit(model, X, Y, useTrainCV=True, cv_folds=5, early_stopping_rounds=50)
+        with open(filename, 'wb') as outfile:
+            pickle.dump(model, outfile)
 
         # use updated model to write new probabilites for each time interval to the DB
-        #self.write_probabilities_to_database(model)
+        self.write_probabilities_to_database(model)
 
         self.stdout.write('The xgboost_daily task was ran at ' + str(today))
 
@@ -275,9 +272,9 @@ class Command(BaseCommand):
         dtrain_predprob = alg.predict_proba(X)[:,1]
             
         #Print model report:
-        print("\nModel Report")
-        print("Accuracy : %.4g" % metrics.accuracy_score(Y, dtrain_predictions))
-        print("AUC Score (Train): %f" % metrics.roc_auc_score(Y, dtrain_predprob))
+        self.stdout.write("\nModel Report")
+        self.stdout.write("Accuracy : %.4g" % metrics.accuracy_score(Y, dtrain_predictions))
+        self.stdout.write("AUC Score (Train): %f" % metrics.roc_auc_score(Y, dtrain_predprob))
 
     # tunes max_depth and min_child_weight parameters
     def tune_depth_weight(self, X, Y):
