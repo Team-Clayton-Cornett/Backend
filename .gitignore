@@ -126,3 +126,6 @@ cron_logs/*
 
 # probability validation annalysis
 validation_images/*
+
+# xgboost models
+xgboost_models/*
