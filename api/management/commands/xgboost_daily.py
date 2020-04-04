@@ -4,6 +4,9 @@ import json
 import numpy as np
 import os
 import time
+import pickle
+import pandas as pd
+import xgboost as xgb
 
 from django.core.management.base import BaseCommand, CommandError
 from xgboost import XGBClassifier
@@ -11,12 +14,8 @@ from datetime import date
 from enum import IntEnum 
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
-
-
-import pandas as pd
-import xgboost as xgb
-from sklearn import metrics   #Additional scklearn functions
-from sklearn.model_selection import GridSearchCV   #Perforing grid search
+from sklearn import metrics
+from sklearn.model_selection import GridSearchCV
 
 # local models
 from api.models import Garage, Probability, DayProbability, DAYS_OF_WEEK, Ticket, Park
@@ -55,12 +54,12 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         # load today's training data
-        self.load_csv()
+        self.create_csv()
 
         # load today's data
         today = date.today()
         dataset = np.loadtxt('training_data/tickets_' + today.strftime("%m-%d-%Y") +'.csv', delimiter=",", usecols=range(4), skiprows=1)
-        
+
         # split data into X and y
         X = dataset[:,0:3]
         Y = dataset[:,3]
@@ -88,7 +87,16 @@ class Command(BaseCommand):
         # fit model
         model.fit(X, Y)
 
+        # evaluate model performance
         #self.modelfit(model, X, Y, useTrainCV=True, cv_folds=5, early_stopping_rounds=50)
+
+        # save model params to file for loading later (TODO)
+        today = date.today()
+        filename = 'xgboost_models/' + today.strftime("%m-%d-%Y") + '.dat'
+        os.makedirs(os.path.dirname(filename), exist_ok=True)
+
+        with open(filename, 'wb') as outfile:
+            pickle.dump(model, outfile)
 
         # use updated model to write new probabilites for each time interval to the DB
         self.write_probabilities_to_database(model)
@@ -169,7 +177,7 @@ class Command(BaseCommand):
 
 
     # Creates /opt/capstone/training_data/tickets<date>.csv with relevent training data from current DB state
-    def load_csv(self):
+    def create_csv(self):
         # A daily copy is kept, named by day
         today = date.today()
 
@@ -204,7 +212,7 @@ class Command(BaseCommand):
             ticketOffset = math.floor(((dateTimeTicketed.hour * 60) + dateTimeTicketed.minute)/15)
 
             # the int representation of a weekday
-            dayCode = dateTimeTicketed.weekday()
+            dayCode = ((dateTimeTicketed.weekday() + 1) % 7)
 
             # ticket the time interval of ticketing, otherwise create a non ticket event
             for i in range(startOffset, endOffset + 1):
@@ -234,7 +242,7 @@ class Command(BaseCommand):
             endOffset = math.floor(((endTime.hour * 60) + endTime.minute)/15)
 
             # the int representation of a weekday
-            dayCode = dateTimeTicketed.weekday()
+            dayCode = ((startTime.weekday() + 1) % 7)
 
             # there will always be not ticket events
             for i in range(startOffset, endOffset + 1):
@@ -264,9 +272,9 @@ class Command(BaseCommand):
         dtrain_predprob = alg.predict_proba(X)[:,1]
             
         #Print model report:
-        print("\nModel Report")
-        print("Accuracy : %.4g" % metrics.accuracy_score(Y, dtrain_predictions))
-        print("AUC Score (Train): %f" % metrics.roc_auc_score(Y, dtrain_predprob))
+        self.stdout.write("\nModel Report")
+        self.stdout.write("Accuracy : %.4g" % metrics.accuracy_score(Y, dtrain_predictions))
+        self.stdout.write("AUC Score (Train): %f" % metrics.roc_auc_score(Y, dtrain_predprob))
 
     # tunes max_depth and min_child_weight parameters
     def tune_depth_weight(self, X, Y):

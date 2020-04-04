@@ -59,17 +59,17 @@ class Command(BaseCommand):
     # converts a day to an int
     def convertDay(sef, day_of_week):
         if day_of_week == DAYS_OF_WEEK[0][0] or day_of_week == DAYS_OF_WEEK[0][1]:
-            return 6
+            return 7
         elif day_of_week == DAYS_OF_WEEK[1][0] or day_of_week == DAYS_OF_WEEK[1][1]:
-            return 0
-        elif day_of_week == DAYS_OF_WEEK[2][0] or day_of_week == DAYS_OF_WEEK[2][1]:
             return 1
-        elif day_of_week == DAYS_OF_WEEK[3][0] or day_of_week == DAYS_OF_WEEK[3][1]:
+        elif day_of_week == DAYS_OF_WEEK[2][0] or day_of_week == DAYS_OF_WEEK[2][1]:
             return 2
-        elif day_of_week == DAYS_OF_WEEK[4][0] or day_of_week == DAYS_OF_WEEK[4][1]:
+        elif day_of_week == DAYS_OF_WEEK[3][0] or day_of_week == DAYS_OF_WEEK[3][1]:
             return 3
-        elif day_of_week == DAYS_OF_WEEK[5][0] or day_of_week == DAYS_OF_WEEK[5][1]:
+        elif day_of_week == DAYS_OF_WEEK[4][0] or day_of_week == DAYS_OF_WEEK[4][1]:
             return 4
-        elif day_of_week == DAYS_OF_WEEK[6][0] or day_of_week == DAYS_OF_WEEK[6][1]:
+        elif day_of_week == DAYS_OF_WEEK[5][0] or day_of_week == DAYS_OF_WEEK[5][1]:
             return 5
+        elif day_of_week == DAYS_OF_WEEK[6][0] or day_of_week == DAYS_OF_WEEK[6][1]:
+            return 6
 
