@@ -3,6 +3,7 @@ branca==0.4.0
 bson==0.5.8
 certifi==2019.11.28
 chardet==3.0.4
+cycler==0.10.0
 dataclasses==0.7
 Django==2.2.10
 djangorestframework==3.11.0
@@ -11,13 +12,17 @@ folium==0.10.1
 idna==2.9
 Jinja2==2.11.1
 joblib==0.14.1
+kiwisolver==1.1.0
 MarkupSafe==1.1.1
+matplotlib==3.2.1
 numpy==1.18.1
 openrouteservice==2.2.3
 ortools==7.5.7466
+pandas==1.0.3
 pkg-resources==0.0.0
 protobuf==3.11.3
 pymongo==3.10.1
+pyparsing==2.4.6
 python-dateutil==2.8.1
 pytz==2019.3
 requests==2.23.0
