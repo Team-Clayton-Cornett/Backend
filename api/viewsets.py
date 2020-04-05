@@ -62,6 +62,7 @@ class ParkViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['post'])
     def create_user_park(self, request):
         data = request.data
+        data = request.data.copy()
         data['user'] = request.user.pk
 
         serializer = self.get_serializer(data=data)
