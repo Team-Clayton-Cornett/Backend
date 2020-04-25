@@ -110,6 +110,10 @@ class Command(BaseCommand):
     # writes new probabilities to DB, based on the newly updated model
     def write_probabilities_to_database(self, model):
         # get all garages
+        
+        if(model is None):
+            return False
+        
         queryset = Garage.objects.all()
 
         # there are 51744 probabilites to write (7 days * 77 garages * 96 intervals in the day)
@@ -127,42 +131,51 @@ class Command(BaseCommand):
                     X_test[inx][2] = i + 1
                     inx = inx + 1
 
-        # output is the probabilites for each time interval
-        preds = model.predict_proba(X_test)
+        try:
+            # output is the probabilites for each time interval
+            preds = model.predict_proba(X_test)
+        except:
+            return False
 
         i=0
         weekend = False
         # loop over all garages in DB and update with the new probabilites
-        for garage in queryset:
-            garage_probs_new = []
-            for garage_day_prob in garage.probability:
-                if garage_day_prob.day_of_week == DAYS_OF_WEEK[0][0] or garage_day_prob.day_of_week == DAYS_OF_WEEK[6][0]:
-                    weekend = True
-                else:
-                    weekend = False
-
-                day_probs_new = []
-                j=0
-                for garage_interval_prob in garage_day_prob.probability:
-                    # time < 7:00am or time > 6:00pm
-                    if j < 28 or j > 72 or weekend == True:
-                        garage_interval_prob.probability = 0.01
+        
+        try:
+            for garage in queryset:
+                garage_probs_new = []
+                for garage_day_prob in garage.probability:
+                    if garage_day_prob.day_of_week == DAYS_OF_WEEK[0][0] or garage_day_prob.day_of_week == DAYS_OF_WEEK[6][0]:
+                        weekend = True
                     else:
-                        garage_interval_prob.probability = preds[i][1]
-                    i=i+1
-                    j=j+1
+                        weekend = False
 
-                    day_probs_new.append(garage_interval_prob)
-                garage_day_prob.probability = day_probs_new
-                garage_probs_new.append(garage_day_prob)
-            # overwrite old probabiliy list
-            garage.probability = garage_probs_new
-            
-            if garage and garage_probs_new:
-                garage.save()
+                    day_probs_new = []
+                    j=0
+                    for garage_interval_prob in garage_day_prob.probability:
+                        # time < 7:00am or time > 6:00pm
+                        if j < 28 or j > 72 or weekend == True:
+                            garage_interval_prob.probability = 0.01
+                        else:
+                            garage_interval_prob.probability = preds[i][1]
+                        i=i+1
+                        j=j+1
+
+                        day_probs_new.append(garage_interval_prob)
+                    garage_day_prob.probability = day_probs_new
+                    garage_probs_new.append(garage_day_prob)
+                # overwrite old probabiliy list
+                garage.probability = garage_probs_new
+                
+                if garage and garage_probs_new:
+                    garage.save()
+        except:
+            return False
+
+        return True
 
     # outputs probs to a file
-    def output_probs(self, model):
+    def output_probs(self, model, filepath="training_data/pred.txt"):
         X_test = np.zeros((51744,3))
         inx = 0
         for i in range(77):
@@ -173,20 +186,24 @@ class Command(BaseCommand):
                     X_test[inx][2] = i
                     inx = inx + 1
 
-        preds = model.predict_proba(X_test)
-
-        with open("training_data/pred.txt", "w") as file:
-            np.savetxt(file, preds)
+        try:
+            preds = model.predict_proba(X_test)
+            
+            with open(filepath, "w") as file:
+                np.savetxt(file, preds)
+        except:
+            return False
+        
+        return True
                       
 
 
     # Creates /opt/capstone/training_data/tickets<date>.csv with relevent training data from current DB state
-    def create_csv(self):
+    def create_csv(self, filename='training_data/tickets_' + date.today().strftime("%m-%d-%Y") +'.csv'):
         # A daily copy is kept, named by day
         today = date.today()
 
         # just in case training_data dir does not exist yet
-        filename = 'training_data/tickets_' + today.strftime("%m-%d-%Y") +'.csv'
         os.makedirs(os.path.dirname(filename), exist_ok=True)
 
         training_set = open((filename), 'w', newline='')
@@ -307,10 +324,6 @@ class Command(BaseCommand):
             objective= 'binary:logistic', nthread=4, scale_pos_weight=3,seed=27), 
             param_grid = param_test1, scoring='roc_auc',n_jobs=4, cv=5)
             gsearch1.fit(X,Y)
-
-            if(gsearch1 is None):
-                print("!!!!!!!!!!!!!!!")
-
         except:
             return False
 
