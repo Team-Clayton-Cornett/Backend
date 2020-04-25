@@ -109,11 +109,10 @@ class Command(BaseCommand):
 
     # writes new probabilities to DB, based on the newly updated model
     def write_probabilities_to_database(self, model):
-        # get all garages
-        
         if(model is None):
             return False
-        
+
+        # get all garages
         queryset = Garage.objects.all()
 
         # there are 51744 probabilites to write (7 days * 77 garages * 96 intervals in the day)
@@ -199,82 +198,91 @@ class Command(BaseCommand):
 
 
     # Creates /opt/capstone/training_data/tickets<date>.csv with relevent training data from current DB state
-    def create_csv(self, filename='training_data/tickets_' + date.today().strftime("%m-%d-%Y") +'.csv'):
-        # A daily copy is kept, named by day
-        today = date.today()
+    def create_csv(self, filename=('training_data/tickets_'+date.today().strftime("%m-%d-%Y") +'.csv')):
+        training_set = None
+        writer = None
+        try:
+            # just in case training_data dir does not exist yet
+            os.makedirs(os.path.dirname(filename), exist_ok=True)
+            training_set = open((filename), 'w', newline='')
+        except:
+            return False
 
-        # just in case training_data dir does not exist yet
-        os.makedirs(os.path.dirname(filename), exist_ok=True)
-
-        training_set = open((filename), 'w', newline='')
-
-        # the data we are training on
-        writer = csv.writer(training_set)
-        writer.writerow(['time','day_of_week', 'garage', 'ticketed'])
+        try:
+            # the data we are training on
+            writer = csv.writer(training_set)
+            writer.writerow(['time','day_of_week', 'garage', 'ticketed'])
+        except:
+            return False
 
         # gets all parks that do have a ticket
         parksTicketed = Park.objects.exclude(ticket = None).exclude(end = None).iterator()
+        ticketCount = Park.objects.exclude(ticket = None).exclude(end = None).count()
 
-        write_queue = []
+        if(parksTicketed is not None):
+            write_queue = []
 
-        for park in parksTicketed:
-            startTime = park.start
-            endTime = park.end
-            # the int representation of a garage
-            garage = park.garage.id
-            # the time the park recieved a ticket
-            dateTimeTicketed = park.ticket.date 
+            for park in parksTicketed:
+                startTime = park.start
+                endTime = park.end
+                # the int representation of a garage
+                garage = park.garage.id
+                # the time the park recieved a ticket
+                dateTimeTicketed = park.ticket.date 
 
-            # gets 15 minute time interval offset
-            startOffset = math.floor(((startTime.hour * 60) + startTime.minute)/15)
-            endOffset = math.floor(((endTime.hour * 60) + endTime.minute)/15)
-            
-            # this is the 15 minute time interval in which the park recieved a ticket
-            ticketOffset = math.floor(((dateTimeTicketed.hour * 60) + dateTimeTicketed.minute)/15)
+                # gets 15 minute time interval offset
+                startOffset = math.floor(((startTime.hour * 60) + startTime.minute)/15)
+                endOffset = math.floor(((endTime.hour * 60) + endTime.minute)/15)
+                
+                # this is the 15 minute time interval in which the park recieved a ticket
+                ticketOffset = math.floor(((dateTimeTicketed.hour * 60) + dateTimeTicketed.minute)/15)
 
-            # the int representation of a weekday
-            dayCode = ((dateTimeTicketed.weekday() + 1) % 7)
+                # the int representation of a weekday
+                dayCode = ((dateTimeTicketed.weekday() + 1) % 7)
 
-            # ticket the time interval of ticketing, otherwise create a non ticket event
-            for i in range(startOffset, endOffset + 1):
-                if(i == ticketOffset): 
-                    write_queue.append((i, dayCode, garage, int(WasTicketed.YES)))
-                else:
-                    write_queue.append((i, dayCode, garage, int(WasTicketed.NO)))
+                # ticket the time interval of ticketing, otherwise create a non ticket event
+                for i in range(startOffset, endOffset + 1):
+                    if(i == ticketOffset): 
+                        write_queue.append((i, dayCode, garage, int(WasTicketed.YES)))
+                    else:
+                        write_queue.append((i, dayCode, garage, int(WasTicketed.NO)))
 
-            if len(write_queue) > 100:
-                writer.writerows(write_queue)  
-                write_queue.clear()
-                time.sleep(0.01)
+                if len(write_queue) > 100 or ticketCount < 100:
+                    writer.writerows(write_queue)  
+                    write_queue.clear()
+                    time.sleep(0.01)
 
         # gets all parks that did not result in a ticket
         parksNotTicketed = Park.objects.filter(ticket = None).exclude(end = None).iterator()
+        ticketCount = Park.objects.filter(ticket = None).exclude(end = None).count()
+        if(parksNotTicketed is not None):
+            write_queue = []
 
-        write_queue.clear()
+            for park in parksNotTicketed:
+                startTime = park.start
+                endTime = park.end
+                # the int representation of a garage
+                garage = park.garage.id
 
-        for park in parksNotTicketed:
-            startTime = park.start
-            endTime = park.end
-            # the int representation of a garage
-            garage = park.garage.id
+                # gets 15 minute time interval offset
+                startOffset = math.floor(((startTime.hour * 60) + startTime.minute)/15)
+                endOffset = math.floor(((endTime.hour * 60) + endTime.minute)/15)
 
-            # gets 15 minute time interval offset
-            startOffset = math.floor(((startTime.hour * 60) + startTime.minute)/15)
-            endOffset = math.floor(((endTime.hour * 60) + endTime.minute)/15)
+                # the int representation of a weekday
+                dayCode = ((startTime.weekday() + 1) % 7)
 
-            # the int representation of a weekday
-            dayCode = ((startTime.weekday() + 1) % 7)
-
-            # there will always be not ticket events
-            for i in range(startOffset, endOffset + 1):
-                write_queue.append((i, dayCode, garage, int(WasTicketed.NO)))
-            
-            if len(write_queue) > 100:
-                writer.writerows(write_queue)  
-                write_queue.clear()
-                time.sleep(0.01)
+                # there will always be not ticket events
+                for i in range(startOffset, endOffset + 1):
+                    write_queue.append((i, dayCode, garage, int(WasTicketed.NO)))
+                
+                if len(write_queue) > 100 or ticketCount < 100:
+                    writer.writerows(write_queue)  
+                    write_queue.clear()
+                    time.sleep(0.01)
 
         training_set.close()
+
+        return True
 
     # evaluates model accuracy
     def modelfit(self, alg, X, Y, useTrainCV=True, cv_folds=5, early_stopping_rounds=50):

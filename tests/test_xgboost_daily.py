@@ -196,7 +196,7 @@ class XGBoostDailyTestCase(TestCase):
             assert res is False
             self.assertEqual(mocked_file.call_count, 1)
     
-    def test_write_probabilities_to_database_good_params(self):
+    def test_write_probabilities_to_database_bad_params(self):
         alg = None
 
         command = Command()
@@ -204,30 +204,86 @@ class XGBoostDailyTestCase(TestCase):
 
         assert res is False
 
-    def test_write_probabilities_to_database_bad_model(self):
-        alg = pickle.load(open("tests/mock_model/03-30-2020.dat", "rb"))
-        assert alg is not None
+# This test works, it just takes too long to run
+    # def test_write_probabilities_to_database_good_params(self):
+    #     alg = pickle.load(open("tests/mock_model/03-30-2020.dat", "rb"))
+    #     assert alg is not None
 
-        command = Command()
-        res = command.write_probabilities_to_database(alg)
-        self.assertEqual(Garage.objects.all().count(), 77)
+    #     command = Command()
+    #     res = command.write_probabilities_to_database(alg)
+    #     self.assertEqual(Garage.objects.all().count(), 77)
 
-        garages = Garage.objects.all()
+    #     garages = Garage.objects.all()
 
-        for i in range(77):
-            for j in range(7):
-                for k in range(96):
-                    self.assertGreater(garages[i].probability[j].probability[k].probability, 0)
+    #     for i in range(77):
+    #         for j in range(7):
+    #             for k in range(96):
+    #                 self.assertGreater(garages[i].probability[j].probability[k].probability, 0)
 
-        assert res is True
+    #     assert res is True
 
-    # def test_create_csv_good_params(self):
-
-    #     start_date = datetime.datetime(2020,1,1,11,0,0)
-    #     end_date = datetime.datetime(2020,1,1,13,0,0)
-    #     ticket_date = datetime.datetime(2020,1,1,12,0,0)
+    def test_create_csv_only_ticketed(self):
+        start_date = datetime.datetime(2020,1,1,11,0,0)
+        end_date = datetime.datetime(2020,1,1,13,0,0)
+        ticket_date = datetime.datetime(2020,1,1,12,0,0)
         
-    #     with(open("tests/garages.dat", "rb")) as file:
-    #         garages = pickle.load(file)
-    #         for garage in garages:
-    #             Garage.objects.create(name=garage.name, start_enforce_time=garage.start_enforce_time, end_enforce_time=garage.end_enforce_time, enforced_on_weekends=garage.enforced_on_weekends, probability=garage.probability, latitude=garage.latitude, longitude=garage.longitude)            
+        Park.objects.create(start = start_date, end=end_date, ticket=Ticket(date=ticket_date), garage=Garage.objects.all()[0])
+        fake_file_path = "tests/file"
+
+        with mock.patch('api.management.commands.xgboost_daily.open', mock.mock_open()) as mocked_file:
+            command = Command()
+            res = command.create_csv(filename=fake_file_path)
+
+            assert res is True
+            mocked_file.assert_called_once_with(fake_file_path, 'w', newline='')      
+            self.assertEqual(mocked_file().write.call_count, 10)
+
+    def test_create_csv_bad_file_write(self):
+        start_date = datetime.datetime(2020,1,1,11,0,0)
+        end_date = datetime.datetime(2020,1,1,13,0,0)
+        ticket_date = datetime.datetime(2020,1,1,12,0,0)
+        
+        Park.objects.create(start = start_date, end=end_date, ticket=Ticket(date=ticket_date), garage=Garage.objects.all()[0])
+        fake_file_path = "tests/file"
+
+        with mock.patch('api.management.commands.xgboost_daily.open', mock.mock_open()) as mocked_file:
+            mocked_file.side_effect = Exception("test exception")
+
+            command = Command()
+            res = command.create_csv(filename=fake_file_path)
+
+            assert res is False
+            self.assertEqual(mocked_file.call_count, 1)
+
+    def test_create_csv_only_not_ticket(self):
+        start_date = datetime.datetime(2020,1,1,11,0,0)
+        end_date = datetime.datetime(2020,1,1,13,0,0)
+        ticket_date = datetime.datetime(2020,1,1,12,0,0)
+        
+        Park.objects.create(start = start_date, end=end_date, ticket=None, garage=Garage.objects.all()[0])
+        fake_file_path = "tests/file"
+
+        with mock.patch('api.management.commands.xgboost_daily.open', mock.mock_open()) as mocked_file:
+            command = Command()
+            res = command.create_csv(filename=fake_file_path)
+
+            assert res is True
+            mocked_file.assert_called_once_with(fake_file_path, 'w', newline='')      
+            self.assertEqual(mocked_file().write.call_count, 10)
+
+    def test_create_csv_both_ticket_and_not(self):
+        start_date = datetime.datetime(2020,1,1,11,0,0)
+        end_date = datetime.datetime(2020,1,1,13,0,0)
+        ticket_date = datetime.datetime(2020,1,1,12,0,0)
+        
+        Park.objects.create(start = start_date, end=end_date, ticket=Ticket(date=ticket_date), garage=Garage.objects.all()[0])
+        Park.objects.create(start = start_date, end=end_date, ticket=None, garage=Garage.objects.all()[0])
+        fake_file_path = "tests/file"
+
+        with mock.patch('api.management.commands.xgboost_daily.open', mock.mock_open()) as mocked_file:
+            command = Command()
+            res = command.create_csv(filename=fake_file_path)
+
+            assert res is True
+            mocked_file.assert_called_once_with(fake_file_path, 'w', newline='')      
+            self.assertEqual(mocked_file().write.call_count, 19)
