@@ -145,6 +145,13 @@ def get_distance_g3(from_id, to_id):
 
 # using ortools, determine the cost and find the optimal coordinate (parking loccation) order for a route
 def get_path(garage_matrix, coords, matrixNum):
+    if(garage_matrix is None):
+        return False
+    if(coords is None):
+        return False
+    if(matrixNum < 0 or matrixNum is None):
+        return False
+    
     tsp_size = len(coords)
     num_routes = 1
     start = 0
@@ -186,6 +193,15 @@ def style_function(color):
 
 # Apply the optimal path trace for each group on the map
 def get_path_mapped(optimal_coords, m, clnt, groupNum):
+    if(optimal_coords is None):
+        return False
+    if(m is None):
+        return False
+    if(clnt is None):
+        return False
+    if(groupNum < 0 or groupNum is None):
+        return False
+    
     request = {'coordinates': optimal_coords,
            'profile': 'driving-car',
            'geometry': 'true',
@@ -194,9 +210,12 @@ def get_path_mapped(optimal_coords, m, clnt, groupNum):
 
     optimal_route = clnt.directions(**request)
 
-    # dump full optimal route result from the api into json
-    with open('route_visualization/FullRoutes/full_route_g' + str(groupNum) + '.json', 'w') as outfile:
-        json.dump(optimal_route, outfile)
+    try:
+        # dump full optimal route result from the api into json
+        with open('route_visualization/FullRoutes/full_route_g' + str(groupNum) + '.json', 'w') as outfile:
+            json.dump(optimal_route, outfile)
+    except:
+        return False
 
     color = ''
 
@@ -212,33 +231,51 @@ def get_path_mapped(optimal_coords, m, clnt, groupNum):
                             style_function=style_function(color),
                         overlay=True).add_to(m)
 
+    return True
+
 # save the route and duration between each step to a json file for data generation later
-def save_routes(groupNum, optimal_coords):
+def save_routes(groupNum, optimal_coords, filepath='route_visualization/CondensedRoutes/condensed_route_g'):
 
-    with open('route_visualization/garage_coordinates_3_groups.json') as all_coords:
-        with open('route_visualization/FullRoutes/full_route_g'+str(groupNum)+'.json') as full_route:
-            garages = json.load(all_coords)
-            full_enforce_route = json.load(full_route)
-            time = 0
-            garageTimePair = ()
-            route = []
-            inx = -1
+    if(groupNum < 0 or groupNum is None):
+        return False
+    if(optimal_coords is None):
+        return False
+    if(os.path.exists('route_visualization/garage_coordinates_3_groups.json') is not True):
+        return False
+    if(os.path.exists('route_visualization/FullRoutes/full_route_g'+str(groupNum)+'.json') is not True):
+        return False
 
-            for coordPair in optimal_coords:
-                for garage in garages:
+    try:
+
+        with open('route_visualization/garage_coordinates_3_groups.json') as all_coords:
+            with open('route_visualization/FullRoutes/full_route_g'+str(groupNum)+'.json') as full_route:
+                garages = json.load(all_coords)
+                full_enforce_route = json.load(full_route)
+                time = 0
+                garageTimePair = ()
+                route = []
+                inx = -1
+
+                for coordPair in optimal_coords:
+                    for garage in garages:
+                        
+                        if(inx != -1):
+                            segment = full_enforce_route['features'][0]['properties']['segments'][inx]
+                        if(garage['latitude'] == coordPair[1] and garage['longitude'] == coordPair[0]):
+                            if(inx == -1):
+                                garageTimePair = (garage['name'], 0)
+                            else:
+                                garageTimePair = (garage['name'], segment['duration'])
+                            route.append(garageTimePair)
+                    inx = inx + 1
                     
-                    if(inx != -1):
-                        segment = full_enforce_route['features'][0]['properties']['segments'][inx]
-                    if(garage['latitude'] == coordPair[1] and garage['longitude'] == coordPair[0]):
-                        if(inx == -1):
-                            garageTimePair = (garage['name'], 0)
-                        else:
-                            garageTimePair = (garage['name'], segment['duration'])
-                        route.append(garageTimePair)
-                inx = inx + 1
-                
-    with open('route_visualization/CondensedRoutes/condensed_route_g'+str(groupNum)+'.json', "w") as outfile:
-        json.dump(route, outfile)
+        with open(filepath+str(groupNum)+'.json', "w") as outfile:
+            json.dump(route, outfile)
+
+    except:
+        return False
+
+    return True
 
 def start():
     api_key = ''

@@ -285,7 +285,7 @@ class Command(BaseCommand):
         return True
 
     # evaluates model accuracy
-    def modelfit(self, alg, X, Y, useTrainCV=True, cv_folds=5, early_stopping_rounds=50):
+    def modelfit(self, alg, X, Y, useTrainCV=True, cv_folds=5, early_stopping_rounds=50, printFlag=False):
         try:
             if useTrainCV:
                 xgb_param = alg.get_xgb_params()
@@ -308,10 +308,11 @@ class Command(BaseCommand):
         except:
             return False
             
-        #Print model report:
-        self.stdout.write("\nModel Report")
-        self.stdout.write("Accuracy : %.4g" % metrics.accuracy_score(Y, dtrain_predictions))
-        self.stdout.write("AUC Score (Train): %f" % metrics.roc_auc_score(Y, dtrain_predprob))
+        if printFlag is True:
+            #Print model report:
+            self.stdout.write("\nModel Report")
+            self.stdout.write("Accuracy : %.4g" % metrics.accuracy_score(Y, dtrain_predictions))
+            self.stdout.write("AUC Score (Train): %f" % metrics.roc_auc_score(Y, dtrain_predprob))
 
         return True
 

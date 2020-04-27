@@ -9,7 +9,7 @@ import builtins
 
 class XGBoostDailyTestCase(TestCase):        
     def setUp(self):
-        with(open("tests/garages.dat", "rb")) as file:
+        with(open("api/tests/xgboost_tests_resources/garages.dat", "rb")) as file:
             garages = pickle.load(file)
             for garage in garages:
                 Garage.objects.create(name=garage.name, start_enforce_time=garage.start_enforce_time, end_enforce_time=garage.end_enforce_time, enforced_on_weekends=garage.enforced_on_weekends, probability=garage.probability, latitude=garage.latitude, longitude=garage.longitude)
@@ -126,7 +126,7 @@ class XGBoostDailyTestCase(TestCase):
         assert res is False
 
     def test_model_fit_good_params(self):
-        alg = pickle.load(open("tests/mock_model/03-30-2020.dat", "rb"))
+        alg = pickle.load(open("api/tests/xgboost_tests_resources/mock_model/03-30-2020.dat", "rb"))
 
         assert alg is not None
 
@@ -156,7 +156,7 @@ class XGBoostDailyTestCase(TestCase):
         fake_file_path = "tests/file"
 
         with mock.patch('api.management.commands.xgboost_daily.open', mock.mock_open()) as mocked_file:
-            alg = pickle.load(open("tests/mock_model/03-30-2020.dat", "rb"))
+            alg = pickle.load(open("api/tests/xgboost_tests_resources/mock_model/03-30-2020.dat", "rb"))
             assert alg is not None
 
             command = Command()
@@ -185,7 +185,7 @@ class XGBoostDailyTestCase(TestCase):
         fake_file_path = "tests/file"
 
         with mock.patch('api.management.commands.xgboost_daily.open', mock.mock_open()) as mocked_file:
-            alg = pickle.load(open("tests/mock_model/03-30-2020.dat", "rb"))
+            alg = pickle.load(open("api/tests/xgboost_tests_resources/mock_model/03-30-2020.dat", "rb"))
             assert alg is not None
 
             mocked_file.side_effect = Exception("test exception")
@@ -228,7 +228,7 @@ class XGBoostDailyTestCase(TestCase):
         ticket_date = datetime.datetime(2020,1,1,12,0,0)
         
         Park.objects.create(start = start_date, end=end_date, ticket=Ticket(date=ticket_date), garage=Garage.objects.all()[0])
-        fake_file_path = "tests/file"
+        fake_file_path = "api/tests/file"
 
         with mock.patch('api.management.commands.xgboost_daily.open', mock.mock_open()) as mocked_file:
             command = Command()
@@ -244,7 +244,7 @@ class XGBoostDailyTestCase(TestCase):
         ticket_date = datetime.datetime(2020,1,1,12,0,0)
         
         Park.objects.create(start = start_date, end=end_date, ticket=Ticket(date=ticket_date), garage=Garage.objects.all()[0])
-        fake_file_path = "tests/file"
+        fake_file_path = "api/tests/file"
 
         with mock.patch('api.management.commands.xgboost_daily.open', mock.mock_open()) as mocked_file:
             mocked_file.side_effect = Exception("test exception")
@@ -261,7 +261,7 @@ class XGBoostDailyTestCase(TestCase):
         ticket_date = datetime.datetime(2020,1,1,12,0,0)
         
         Park.objects.create(start = start_date, end=end_date, ticket=None, garage=Garage.objects.all()[0])
-        fake_file_path = "tests/file"
+        fake_file_path = "api/tests/file"
 
         with mock.patch('api.management.commands.xgboost_daily.open', mock.mock_open()) as mocked_file:
             command = Command()
@@ -278,7 +278,7 @@ class XGBoostDailyTestCase(TestCase):
         
         Park.objects.create(start = start_date, end=end_date, ticket=Ticket(date=ticket_date), garage=Garage.objects.all()[0])
         Park.objects.create(start = start_date, end=end_date, ticket=None, garage=Garage.objects.all()[0])
-        fake_file_path = "tests/file"
+        fake_file_path = "api/tests/file"
 
         with mock.patch('api.management.commands.xgboost_daily.open', mock.mock_open()) as mocked_file:
             command = Command()
