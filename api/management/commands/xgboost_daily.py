@@ -69,6 +69,10 @@ class Command(BaseCommand):
         gamma = self.tune_gamma(X, Y)
         subsample_colsample = self.tune_subsample_colsample(X,Y)
 
+        if(depth_weight == False or gamma == False or subsample_colsample == False):
+            self.stdout.write('There was an error tuning model parameters')
+            return
+
         # init model with new parameters
         model = XGBClassifier(
             learning_rate = 0.01,
@@ -105,6 +109,9 @@ class Command(BaseCommand):
 
     # writes new probabilities to DB, based on the newly updated model
     def write_probabilities_to_database(self, model):
+        if(model is None):
+            return False
+
         # get all garages
         queryset = Garage.objects.all()
 
@@ -123,42 +130,51 @@ class Command(BaseCommand):
                     X_test[inx][2] = i + 1
                     inx = inx + 1
 
-        # output is the probabilites for each time interval
-        preds = model.predict_proba(X_test)
+        try:
+            # output is the probabilites for each time interval
+            preds = model.predict_proba(X_test)
+        except:
+            return False
 
         i=0
         weekend = False
         # loop over all garages in DB and update with the new probabilites
-        for garage in queryset:
-            garage_probs_new = []
-            for garage_day_prob in garage.probability:
-                if garage_day_prob.day_of_week == DAYS_OF_WEEK[0][0] or garage_day_prob.day_of_week == DAYS_OF_WEEK[6][0]:
-                    weekend = True
-                else:
-                    weekend = False
-
-                day_probs_new = []
-                j=0
-                for garage_interval_prob in garage_day_prob.probability:
-                    # time < 7:00am or time > 6:00pm
-                    if j < 28 or j > 72 or weekend == True:
-                        garage_interval_prob.probability = 0.01
+        
+        try:
+            for garage in queryset:
+                garage_probs_new = []
+                for garage_day_prob in garage.probability:
+                    if garage_day_prob.day_of_week == DAYS_OF_WEEK[0][0] or garage_day_prob.day_of_week == DAYS_OF_WEEK[6][0]:
+                        weekend = True
                     else:
-                        garage_interval_prob.probability = preds[i][1]
-                    i=i+1
-                    j=j+1
+                        weekend = False
 
-                    day_probs_new.append(garage_interval_prob)
-                garage_day_prob.probability = day_probs_new
-                garage_probs_new.append(garage_day_prob)
-            # overwrite old probabiliy list
-            garage.probability = garage_probs_new
-            
-            if garage and garage_probs_new:
-                garage.save()
+                    day_probs_new = []
+                    j=0
+                    for garage_interval_prob in garage_day_prob.probability:
+                        # time < 7:00am or time > 6:00pm
+                        if j < 28 or j > 72 or weekend == True:
+                            garage_interval_prob.probability = 0.01
+                        else:
+                            garage_interval_prob.probability = preds[i][1]
+                        i=i+1
+                        j=j+1
+
+                        day_probs_new.append(garage_interval_prob)
+                    garage_day_prob.probability = day_probs_new
+                    garage_probs_new.append(garage_day_prob)
+                # overwrite old probabiliy list
+                garage.probability = garage_probs_new
+                
+                if garage and garage_probs_new:
+                    garage.save()
+        except:
+            return False
+
+        return True
 
     # outputs probs to a file
-    def output_probs(self, model):
+    def output_probs(self, model, filepath="training_data/pred.txt"):
         X_test = np.zeros((51744,3))
         inx = 0
         for i in range(77):
@@ -169,139 +185,176 @@ class Command(BaseCommand):
                     X_test[inx][2] = i
                     inx = inx + 1
 
-        preds = model.predict_proba(X_test)
-
-        with open("training_data/pred.txt", "w") as file:
-            np.savetxt(file, preds)
+        try:
+            preds = model.predict_proba(X_test)
+            
+            with open(filepath, "w") as file:
+                np.savetxt(file, preds)
+        except:
+            return False
+        
+        return True
                       
 
 
     # Creates /opt/capstone/training_data/tickets<date>.csv with relevent training data from current DB state
-    def create_csv(self):
-        # A daily copy is kept, named by day
-        today = date.today()
+    def create_csv(self, filename=('training_data/tickets_'+date.today().strftime("%m-%d-%Y") +'.csv')):
+        training_set = None
+        writer = None
+        try:
+            # just in case training_data dir does not exist yet
+            os.makedirs(os.path.dirname(filename), exist_ok=True)
+            training_set = open((filename), 'w', newline='')
+        except:
+            return False
 
-        # just in case training_data dir does not exist yet
-        filename = 'training_data/tickets_' + today.strftime("%m-%d-%Y") +'.csv'
-        os.makedirs(os.path.dirname(filename), exist_ok=True)
-
-        training_set = open((filename), 'w', newline='')
-
-        # the data we are training on
-        writer = csv.writer(training_set)
-        writer.writerow(['time','day_of_week', 'garage', 'ticketed'])
+        try:
+            # the data we are training on
+            writer = csv.writer(training_set)
+            writer.writerow(['time','day_of_week', 'garage', 'ticketed'])
+        except:
+            return False
 
         # gets all parks that do have a ticket
         parksTicketed = Park.objects.exclude(ticket = None).exclude(end = None).iterator()
+        ticketCount = Park.objects.exclude(ticket = None).exclude(end = None).count()
 
-        write_queue = []
+        if(parksTicketed is not None):
+            write_queue = []
 
-        for park in parksTicketed:
-            startTime = park.start
-            endTime = park.end
-            # the int representation of a garage
-            garage = park.garage.id
-            # the time the park recieved a ticket
-            dateTimeTicketed = park.ticket.date 
+            for park in parksTicketed:
+                startTime = park.start
+                endTime = park.end
+                # the int representation of a garage
+                garage = park.garage.id
+                # the time the park recieved a ticket
+                dateTimeTicketed = park.ticket.date 
 
-            # gets 15 minute time interval offset
-            startOffset = math.floor(((startTime.hour * 60) + startTime.minute)/15)
-            endOffset = math.floor(((endTime.hour * 60) + endTime.minute)/15)
-            
-            # this is the 15 minute time interval in which the park recieved a ticket
-            ticketOffset = math.floor(((dateTimeTicketed.hour * 60) + dateTimeTicketed.minute)/15)
+                # gets 15 minute time interval offset
+                startOffset = math.floor(((startTime.hour * 60) + startTime.minute)/15)
+                endOffset = math.floor(((endTime.hour * 60) + endTime.minute)/15)
+                
+                # this is the 15 minute time interval in which the park recieved a ticket
+                ticketOffset = math.floor(((dateTimeTicketed.hour * 60) + dateTimeTicketed.minute)/15)
 
-            # the int representation of a weekday
-            dayCode = ((dateTimeTicketed.weekday() + 1) % 7)
+                # the int representation of a weekday
+                dayCode = ((dateTimeTicketed.weekday() + 1) % 7)
 
-            # ticket the time interval of ticketing, otherwise create a non ticket event
-            for i in range(startOffset, endOffset + 1):
-                if(i == ticketOffset): 
-                    write_queue.append((i, dayCode, garage, int(WasTicketed.YES)))
-                else:
-                    write_queue.append((i, dayCode, garage, int(WasTicketed.NO)))
+                # ticket the time interval of ticketing, otherwise create a non ticket event
+                for i in range(startOffset, endOffset + 1):
+                    if(i == ticketOffset): 
+                        write_queue.append((i, dayCode, garage, int(WasTicketed.YES)))
+                    else:
+                        write_queue.append((i, dayCode, garage, int(WasTicketed.NO)))
 
-            if len(write_queue) > 100:
-                writer.writerows(write_queue)  
-                write_queue.clear()
-                time.sleep(0.01)
+                if len(write_queue) > 100 or ticketCount < 100:
+                    writer.writerows(write_queue)  
+                    write_queue.clear()
+                    time.sleep(0.01)
 
         # gets all parks that did not result in a ticket
         parksNotTicketed = Park.objects.filter(ticket = None).exclude(end = None).iterator()
+        ticketCount = Park.objects.filter(ticket = None).exclude(end = None).count()
+        if(parksNotTicketed is not None):
+            write_queue = []
 
-        write_queue.clear()
+            for park in parksNotTicketed:
+                startTime = park.start
+                endTime = park.end
+                # the int representation of a garage
+                garage = park.garage.id
 
-        for park in parksNotTicketed:
-            startTime = park.start
-            endTime = park.end
-            # the int representation of a garage
-            garage = park.garage.id
+                # gets 15 minute time interval offset
+                startOffset = math.floor(((startTime.hour * 60) + startTime.minute)/15)
+                endOffset = math.floor(((endTime.hour * 60) + endTime.minute)/15)
 
-            # gets 15 minute time interval offset
-            startOffset = math.floor(((startTime.hour * 60) + startTime.minute)/15)
-            endOffset = math.floor(((endTime.hour * 60) + endTime.minute)/15)
+                # the int representation of a weekday
+                dayCode = ((startTime.weekday() + 1) % 7)
 
-            # the int representation of a weekday
-            dayCode = ((startTime.weekday() + 1) % 7)
-
-            # there will always be not ticket events
-            for i in range(startOffset, endOffset + 1):
-                write_queue.append((i, dayCode, garage, int(WasTicketed.NO)))
-            
-            if len(write_queue) > 100:
-                writer.writerows(write_queue)  
-                write_queue.clear()
-                time.sleep(0.01)
+                # there will always be not ticket events
+                for i in range(startOffset, endOffset + 1):
+                    write_queue.append((i, dayCode, garage, int(WasTicketed.NO)))
+                
+                if len(write_queue) > 100 or ticketCount < 100:
+                    writer.writerows(write_queue)  
+                    write_queue.clear()
+                    time.sleep(0.01)
 
         training_set.close()
 
+        return True
+
     # evaluates model accuracy
-    def modelfit(self, alg, X, Y, useTrainCV=True, cv_folds=5, early_stopping_rounds=50):
-        if useTrainCV:
-            xgb_param = alg.get_xgb_params()
-            xgtrain = xgb.DMatrix(X, label=Y)
-            cvresult = xgb.cv(xgb_param, xgtrain, num_boost_round=alg.get_params()['n_estimators'], nfold=cv_folds,
-                metrics='auc', early_stopping_rounds=early_stopping_rounds, verbose_eval=False)
-            alg.set_params(n_estimators=cvresult.shape[0])
+    def modelfit(self, alg, X, Y, useTrainCV=True, cv_folds=5, early_stopping_rounds=50, printFlag=False):
+        try:
+            if useTrainCV:
+                xgb_param = alg.get_xgb_params()
+                xgtrain = xgb.DMatrix(X, label=Y)
+                cvresult = xgb.cv(xgb_param, xgtrain, num_boost_round=alg.get_params()['n_estimators'], nfold=cv_folds,
+                    metrics='auc', early_stopping_rounds=early_stopping_rounds, verbose_eval=False)
+                alg.set_params(n_estimators=cvresult.shape[0])
+            else:
+                return False
+        except:
+            return False
         
-        #Fit the algorithm on the data
-        alg.fit(X, Y, eval_metric='auc')
+        try:
+            #Fit the algorithm on the data
+            alg.fit(X, Y, eval_metric='auc')
+                
+            #Predict training set:
+            dtrain_predictions = alg.predict(X)
+            dtrain_predprob = alg.predict_proba(X)[:,1]
+        except:
+            return False
             
-        #Predict training set:
-        dtrain_predictions = alg.predict(X)
-        dtrain_predprob = alg.predict_proba(X)[:,1]
-            
-        #Print model report:
-        self.stdout.write("\nModel Report")
-        self.stdout.write("Accuracy : %.4g" % metrics.accuracy_score(Y, dtrain_predictions))
-        self.stdout.write("AUC Score (Train): %f" % metrics.roc_auc_score(Y, dtrain_predprob))
+        if printFlag is True:
+            #Print model report:
+            self.stdout.write("\nModel Report")
+            self.stdout.write("Accuracy : %.4g" % metrics.accuracy_score(Y, dtrain_predictions))
+            self.stdout.write("AUC Score (Train): %f" % metrics.roc_auc_score(Y, dtrain_predprob))
+
+        return True
 
     # tunes max_depth and min_child_weight parameters
     def tune_depth_weight(self, X, Y):
+        
+        if(X is None or Y is None):
+            return False
+         
         param_test1 = {
             'max_depth':range(3,10,2),
             'min_child_weight':range(1,6,2)
         }
 
-        gsearch1 = GridSearchCV(estimator = XGBClassifier( learning_rate=0.1, n_estimators=140, max_depth=5,
-        min_child_weight=2, gamma=0, subsample=0.8, colsample_bytree=0.8,
-        objective= 'binary:logistic', nthread=4, scale_pos_weight=3,seed=27), 
-        param_grid = param_test1, scoring='roc_auc',n_jobs=4, cv=5)
-        gsearch1.fit(X,Y)
+        try:
+            gsearch1 = GridSearchCV(estimator = XGBClassifier( learning_rate=0.1, n_estimators=140, max_depth=5,
+            min_child_weight=2, gamma=0, subsample=0.8, colsample_bytree=0.8,
+            objective= 'binary:logistic', nthread=4, scale_pos_weight=3,seed=27), 
+            param_grid = param_test1, scoring='roc_auc',n_jobs=4, cv=5)
+            gsearch1.fit(X,Y)
+        except:
+            return False
 
-        n1 = gsearch1.best_params_['max_depth']
-        n2 = gsearch1.best_params_['min_child_weight']
+        try:
+            n1 = gsearch1.best_params_['max_depth']
+            n2 = gsearch1.best_params_['min_child_weight']
+        except:
+            return False
         
         param_test2 = {
             'max_depth':[n1-1,n1,n1+1],
             'min_child_weight':[n2-1,n2,n2+1]
         }
 
-        gsearch2 = GridSearchCV(estimator = XGBClassifier( learning_rate=0.1, n_estimators=140, max_depth=5,
-        min_child_weight=2, gamma=0, subsample=0.8, colsample_bytree=0.8,
-        objective= 'binary:logistic', nthread=4, scale_pos_weight=3,seed=27), 
-        param_grid = param_test2, scoring='roc_auc',n_jobs=4, cv=5)
-        gsearch2.fit(X,Y)
+        try:
+            gsearch2 = GridSearchCV(estimator = XGBClassifier( learning_rate=0.1, n_estimators=140, max_depth=5,
+            min_child_weight=2, gamma=0, subsample=0.8, colsample_bytree=0.8,
+            objective= 'binary:logistic', nthread=4, scale_pos_weight=3,seed=27), 
+            param_grid = param_test2, scoring='roc_auc',n_jobs=4, cv=5)
+            gsearch2.fit(X,Y)
+        except:
+            return False
 
         return (gsearch2.best_params_['max_depth'], gsearch2.best_params_['min_child_weight'])
     
@@ -310,11 +363,15 @@ class Command(BaseCommand):
         param_test3 = {
             'gamma':[i/10.0 for i in range(0,5)]
         }
-        gsearch3 = GridSearchCV(estimator = XGBClassifier( learning_rate =0.1, n_estimators=140, max_depth=10,
-        min_child_weight=0, gamma=0, subsample=0.8, colsample_bytree=0.8,
-        objective= 'binary:logistic', nthread=4, scale_pos_weight=3,seed=27), 
-        param_grid = param_test3, scoring='roc_auc',n_jobs=4, cv=5)
-        gsearch3.fit(X,Y)
+
+        try:
+            gsearch3 = GridSearchCV(estimator = XGBClassifier( learning_rate =0.1, n_estimators=140, max_depth=10,
+            min_child_weight=0, gamma=0, subsample=0.8, colsample_bytree=0.8,
+            objective= 'binary:logistic', nthread=4, scale_pos_weight=3,seed=27), 
+            param_grid = param_test3, scoring='roc_auc',n_jobs=4, cv=5)
+            gsearch3.fit(X,Y)
+        except:
+            return False
 
         return gsearch3.best_params_['gamma']
     
@@ -324,11 +381,14 @@ class Command(BaseCommand):
             'subsample':[i/10.0 for i in range(6,10)],
             'colsample_bytree':[i/10.0 for i in range(6,10)]
         }
-        gsearch4 = GridSearchCV(estimator = XGBClassifier( learning_rate =0.1, n_estimators=177, max_depth=10,
-        min_child_weight=0, gamma=0.1, subsample=0.8, colsample_bytree=0.8,
-        objective= 'binary:logistic', nthread=4, scale_pos_weight=1,seed=27), 
-        param_grid = param_test4, scoring='roc_auc',n_jobs=4, cv=5)
-        gsearch4.fit(X,Y)
+        try:
+            gsearch4 = GridSearchCV(estimator = XGBClassifier( learning_rate =0.1, n_estimators=177, max_depth=10,
+            min_child_weight=0, gamma=0.1, subsample=0.8, colsample_bytree=0.8,
+            objective= 'binary:logistic', nthread=4, scale_pos_weight=1,seed=27), 
+            param_grid = param_test4, scoring='roc_auc',n_jobs=4, cv=5)
+            gsearch4.fit(X,Y)
+        except:
+            return False
 
         return (gsearch4.best_params_['subsample'], gsearch4.best_params_['colsample_bytree'])
                 
