@@ -9,6 +9,7 @@ import math
 from random import random
 from random import randrange
 from random import randint
+import pickle
 
 # local models
 from api.models import Garage, Probability, DayProbability, Ticket, Park, User
@@ -330,6 +331,12 @@ def random_date(start, end):
     rand_date = start + datetime.timedelta(seconds=randint(0, int((end - start).total_seconds())))
 
     return rand_date
+
+def save_garages():
+    garages = Garage.objects.all()
+
+    with(open("tests/garages.dat", "wb")) as file:
+        pickle.dump(garages, file)
 
 
 """
