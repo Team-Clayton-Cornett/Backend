@@ -41,8 +41,17 @@ class ParkViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['get'])
     def get_user_parks(self, request):
-        if request.data.get('pk'):
-            park = Park.objects.get(pk=request.data['pk'])
+        if request.query_params.get('pk') or request.data.get('pk'):
+            if request.query_params.get('pk'):
+                pk = request.query_params['pk']
+            else:
+                pk = request.data['pk']
+
+            try:
+                park = Park.objects.get(pk=pk)
+            except:
+                return Response('The park with pk=' + pk + ' does not exist.',
+                                status=status.HTTP_400_BAD_REQUEST)
 
             if park.user != request.user:
                 return Response('The user does not own the specified park.',
