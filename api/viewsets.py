@@ -95,7 +95,7 @@ class ParkViewSet(viewsets.ModelViewSet):
                     'pk': ['This field is required.']
                 }, status=status.HTTP_400_BAD_REQUEST)
         except:
-            return Response('Park with pk ' + str(pk) + ' does not exist.',
+            return Response('Park with pk ' + str(request.data.get('pk')) + ' does not exist.',
                             status=status.HTTP_400_BAD_REQUEST)
 
         # create serializer instance and validate new data

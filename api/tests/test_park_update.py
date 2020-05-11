@@ -227,6 +227,49 @@ class ParkUpdateTestCase(TestCase):
         self.assertEqual(response.status_code, 400, msg="Invalid response status code.")
         self.assertEqual(response_content, correct_response_content, msg="Invalid response content.")
 
+    def test_park_update_invalid_park_belongs_to_other_user(self):
+        existing2_user_data = {
+            "email": "existing2@user.com",
+            "first_name": "Existing",
+            "last_name": "User",
+            "phone": "3753753755"
+        }
+
+        user2 = User.objects.create(**existing2_user_data)
+        user2.set_password("defaultpassword")
+        user2.save()
+
+        user2_token = Token.objects.create(user=user2)
+
+        update_park_data = {
+            "pk": self.park.pk,
+            "garage_id": self.garage2.pk
+        }
+
+        response = self.client.patch('/api/user/park/', update_park_data, HTTP_AUTHORIZATION='Token ' + user2_token.key)
+        response_content = json.loads(response.content)
+
+        correct_response_content = 'The user does not own this park.'
+
+        # verify response is correct
+        self.assertEqual(response.status_code, 400, msg="Invalid response status code.")
+        self.assertEqual(response_content, correct_response_content, msg="Invalid response content.")
+
+    def test_park_update_invalid_park_dne(self):
+        update_park_data = {
+            "pk": 99,
+            "garage_id": self.garage2.pk
+        }
+
+        response = self.client.patch('/api/user/park/', update_park_data, HTTP_AUTHORIZATION='Token ' + self.user_token.key)
+        response_content = json.loads(response.content)
+
+        correct_response_content = 'Park with pk 99 does not exist.'
+
+        # verify response is correct
+        self.assertEqual(response.status_code, 400, msg="Invalid response status code.")
+        self.assertEqual(response_content, correct_response_content, msg="Invalid response content.")
+
     def test_park_update_invalid(self):
         update_park_data = {
             "pk": self.park.pk,
