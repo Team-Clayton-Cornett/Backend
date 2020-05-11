@@ -71,7 +71,7 @@ class ParkGetTestCase(TestCase):
 
         correct_response_content = [
             {
-                'pk': self.garage2.pk,
+                'pk': self.park2.pk,
                 'start': self.park2.start.replace(microsecond=((self.park2.start.microsecond // 1000) * 1000)).isoformat(),
                 'end': self.park2.end.replace(microsecond=((self.park2.end.microsecond // 1000) * 1000)).isoformat(),
                 'ticket': {
@@ -110,7 +110,7 @@ class ParkGetTestCase(TestCase):
         response_content = json.loads(response.content)
 
         correct_response_content = {
-            'pk': self.garage2.pk,
+            'pk': self.park2.pk,
             'start': self.park2.start.replace(microsecond=((self.park2.start.microsecond // 1000) * 1000)).isoformat(),
             'end': self.park2.end.replace(microsecond=((self.park2.end.microsecond // 1000) * 1000)).isoformat(),
             'ticket': {
