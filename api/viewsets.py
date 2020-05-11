@@ -131,9 +131,13 @@ class TicketViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['post', 'patch'])
     def create_user_ticket(self, request):
         try:
-            park = Park.objects.get(pk=request.data['park_id'])
+            if request.data.get('park_id'):
+                park = Park.objects.get(pk=request.data['park_id'])
+            else:
+                return Response({'park_id': ['This field is required.']},
+                            status=status.HTTP_400_BAD_REQUEST)
         except:
-            return Response({'park_id': ['Park with pk ' + str(pk) + ' does not exist.']},
+            return Response({'park_id': ['Park with pk ' + str(request.data.get('park_id')) + ' does not exist.']},
                             status=status.HTTP_400_BAD_REQUEST)
 
         if park.user != request.user:
