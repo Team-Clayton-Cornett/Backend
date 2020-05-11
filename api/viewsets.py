@@ -88,7 +88,12 @@ class ParkViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['patch'])
     def update_user_park(self, request):
         try:
-            instance = Park.objects.get(pk=request.data['pk'])
+            if request.data.get('pk'):
+                instance = Park.objects.get(pk=request.data['pk'])
+            else:
+                return Response({
+                    'pk': ['This field is required.']
+                }, status=status.HTTP_400_BAD_REQUEST)
         except:
             return Response('Park with pk ' + str(pk) + ' does not exist.',
                             status=status.HTTP_400_BAD_REQUEST)
