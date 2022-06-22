@@ -15,7 +15,7 @@ joblib==0.14.1
 kiwisolver==1.1.0
 MarkupSafe==1.1.1
 matplotlib==3.2.1
-numpy==1.18.1
+numpy==1.22.0
 openrouteservice==2.2.3
 ortools==7.5.7466
 pandas==1.0.3
